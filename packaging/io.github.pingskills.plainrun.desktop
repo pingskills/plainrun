@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=PlainRun
+GenericName=Running Log
+Comment=A simple native running log for Linux
+Exec=plainrun
+Icon=io.github.pingskills.plainrun
+Terminal=false
+Categories=Utility;
+Keywords=running;run;log;jogging;distance;pace;exercise;
+StartupNotify=true
+StartupWMClass=io.github.pingskills.plainrun

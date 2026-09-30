@@ -1,0 +1,24 @@
+# Build output
+/build/
+/build-*/
+/compile_commands.json
+.cache/
+.qtcreator/
+CMakeLists.txt.user*
+
+# Arch packaging output (when building in packaging/arch)
+/packaging/arch/src/
+/packaging/arch/pkg/
+/packaging/arch/*.tar.gz
+/packaging/arch/*.tar.zst
+/packaging/arch/*.pkg.tar.*
+/packaging/arch/*.log
+
+# Development sandboxes
+/.sandbox/
+
+# Editors
+*.swp
+*~
+.vscode/
+.idea/

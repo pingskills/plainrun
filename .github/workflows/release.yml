@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Verify and publish GitHub release
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install dependencies
+        run: pacman -Syu --noconfirm --needed base-devel git github-cli cmake ninja qt6-base qt6-declarative
+
+      - uses: actions/checkout@v4
+
+      - name: Check the tag matches the CMake project version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version=$(sed -n 's/^ *VERSION \([0-9.]*\)$/\1/p' CMakeLists.txt | head -n1)
+          echo "tag=$tag cmake=$version"
+          test "$tag" = "$version"
+          grep -q "## \[$version\]" CHANGELOG.md
+          grep -q "release version=\"$version\"" packaging/io.github.pingskills.plainrun.metainfo.xml
+
+      - name: Build and test
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+          ctest --test-dir build --output-on-failure
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          version="${GITHUB_REF_NAME#v}"
+          # Release notes: the CHANGELOG section for this version.
+          awk -v v="$version" '$0 ~ "^## \\["v"\\]" {p=1; next} /^## \[/ {p=0} p' CHANGELOG.md > notes.md
+          gh release create "$GITHUB_REF_NAME" --title "PlainRun $version" --notes-file notes.md --verify-tag

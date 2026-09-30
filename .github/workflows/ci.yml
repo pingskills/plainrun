@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  arch:
+    name: Build and test (Arch Linux)
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm --needed base-devel git cmake ninja qt6-base qt6-declarative \
+            appstream desktop-file-utils
+
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Validate desktop entry and AppStream metadata
+        run: |
+          desktop-file-validate packaging/io.github.pingskills.plainrun.desktop
+          appstreamcli validate --no-net packaging/io.github.pingskills.plainrun.metainfo.xml
+
+      - name: Install into a staging directory
+        run: DESTDIR="$PWD/stage" cmake --install build --prefix /usr && find stage -type f | sort

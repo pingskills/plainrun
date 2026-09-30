@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- PlainRun application icon: a running track with a single runner.
+     Source of truth for all icon sizes; PNGs are rendered by tools/render-icons.sh. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <title>PlainRun</title>
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="#1e2b29"/>
+  <rect x="24" y="38" width="80" height="52" rx="26" fill="none" stroke="#ece7dc" stroke-width="10"/>
+  <circle cx="80" cy="38" r="11" fill="#f0a04b" stroke="#1e2b29" stroke-width="4"/>
+</svg>

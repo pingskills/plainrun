@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.pingskills.plainrun</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>PlainRun</name>
+  <summary>A simple native running log for Linux</summary>
+  <developer id="io.github.pingskills">
+    <name>pingskills</name>
+  </developer>
+  <description>
+    <p>
+      PlainRun records your runs and makes it easy to see how much you have been running.
+      It is small, fast and entirely local: no accounts, no cloud, no tracking.
+    </p>
+    <ul>
+      <li>Record date, distance, time and an optional note; pace is calculated</li>
+      <li>Weekly, monthly and yearly totals, with simple distance charts</li>
+      <li>Personal bests for 1 km, 5 km, 10 km, half marathon and marathon</li>
+      <li>Backup and restore, CSV export and import</li>
+      <li>Keyboard friendly; follows the Omarchy theme when available</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.pingskills.plainrun.desktop</launchable>
+  <url type="homepage">https://github.com/pingskills/plainrun</url>
+  <url type="bugtracker">https://github.com/pingskills/plainrun/issues</url>
+  <categories>
+    <category>Utility</category>
+  </categories>
+  <keywords>
+    <keyword>running</keyword>
+    <keyword>log</keyword>
+    <keyword>pace</keyword>
+  </keywords>
+  <provides>
+    <binary>plainrun</binary>
+  </provides>
+  <content_rating type="oars-1.1"/>
+  <requires>
+    <display_length compare="ge">768</display_length>
+  </requires>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </supports>
+  <releases>
+    <release version="0.1.0" date="2026-09-30">
+      <description>
+        <p>First release.</p>
+      </description>
+    </release>
+  </releases>
+</component>
