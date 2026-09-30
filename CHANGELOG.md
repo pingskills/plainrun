@@ -6,6 +6,8 @@ and PlainRun uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-30
+
 ### Changed
 - The data directory is created private to the user (0700), and the database,
   backups and pre-restore copies are written as 0600. Existing files keep their
@@ -30,5 +32,6 @@ First release.
 - Follows the active Omarchy theme when present, including live theme changes.
 - Desktop entry, icon and AppStream metadata; Arch Linux PKGBUILD.
 
-[Unreleased]: https://github.com/pingskills/plainrun/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/pingskills/plainrun/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/pingskills/plainrun/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/pingskills/plainrun/releases/tag/v0.1.0
