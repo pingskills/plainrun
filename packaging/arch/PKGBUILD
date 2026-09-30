@@ -13,7 +13,7 @@ depends=('glibc' 'hicolor-icon-theme' 'libgcc' 'libstdc++' 'qt6-base' 'qt6-decla
 makedepends=('cmake' 'ninja')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
 # Replace with the real checksum once the v$pkgver tag is published: run `updpkgsums`.
-sha256sums=('SKIP')
+sha256sums=('8a2a54b11ea8717c9ebd5949053d88289262d1f2c0129b4b80ed9a80f6f66c13')
 
 build() {
   cmake -B build -S "$pkgname-$pkgver" -G Ninja \
