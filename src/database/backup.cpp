@@ -136,6 +136,7 @@ bool writeBackup(Database &db, const QString &targetPath, QString *error)
         return false;
     }
 
+    makePrivateFile(temp);
     const BackupInfo check = inspectBackup(temp);
     if (!check.valid) {
         removeIfExists(temp);
@@ -186,6 +187,7 @@ bool restoreBackup(Database &db, const QString &sourcePath, QString *safetyCopyP
             removeIfExists(staged);
             return failWith(tr("Could not copy the backup: %1").arg(sqlError));
         }
+        makePrivateFile(staged);
     }
 
     // 2. Bring the copy up to the current schema (no-op if already current).
@@ -212,6 +214,7 @@ bool restoreBackup(Database &db, const QString &sourcePath, QString *safetyCopyP
             return failWith(tr("Could not save a copy of your current data, so nothing was changed: %1")
                                 .arg(sqlError));
         }
+        makePrivateFile(safety);
     }
 
     // 4. Swap files while no connection is open.

@@ -4,6 +4,7 @@
 
 #include <QAtomicInt>
 #include <QCoreApplication>
+#include <QFile>
 #include <QFileInfo>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -18,6 +19,16 @@ QString tr(const char *text)
 }
 
 } // namespace
+
+void makePrivateFile(const QString &path)
+{
+    QFile::setPermissions(path, QFileDevice::ReadOwner | QFileDevice::WriteOwner);
+}
+
+void makePrivateDirectory(const QString &path)
+{
+    QFile::setPermissions(path, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
+}
 
 QString uniqueConnectionName(const QString &prefix)
 {
@@ -78,7 +89,8 @@ bool Database::open(const QString &path, Mode mode, const QList<Migration> &step
     m_lastError.clear();
 
     const bool readOnly = mode == Mode::ReadOnly;
-    if (readOnly && !QFileInfo::exists(path))
+    const bool newFile = !QFileInfo::exists(path);
+    if (readOnly && newFile)
         return fail(tr("The database %1 does not exist.").arg(path));
 
     QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), m_connectionName);
@@ -92,6 +104,8 @@ bool Database::open(const QString &path, Mode mode, const QList<Migration> &step
 
     if (!db.open())
         return fail(tr("Could not open the database %1: %2").arg(path, db.lastError().text()));
+    if (newFile)
+        makePrivateFile(path);
 
     const HeaderInfo header = readHeader(db);
     if (!header.ok)

@@ -82,12 +82,15 @@ AppController::~AppController() = default;
 bool AppController::initialize()
 {
     const QString dir = QFileInfo(m_databasePath).absolutePath();
+    const bool newDir = !QFileInfo::exists(dir);
     if (!QDir().mkpath(dir)) {
         m_startupError = tr("Could not create the data folder %1.").arg(dir);
         qCWarning(lcApp).noquote() << m_startupError;
         emit stateChanged();
         return false;
     }
+    if (newDir)
+        db::makePrivateDirectory(dir);
     if (!m_db.open(m_databasePath)) {
         m_startupError = m_db.lastError();
         emit stateChanged();

@@ -6,6 +6,13 @@ and PlainRun uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- The data directory is created private to the user (0700), and the database,
+  backups and pre-restore copies are written as 0600. Existing files keep their
+  permissions.
+- `docs/PLAIN_APPS_GUIDELINES.md` is now the canonical family guidelines, with
+  conventions learned from PlainWeight.
+
 ## [0.1.0] - 2026-09-30
 
 First release.

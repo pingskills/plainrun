@@ -55,6 +55,8 @@ private slots:
         QString error;
         QVERIFY2(writeBackup(db, backup, &error), qPrintable(error));
         QVERIFY(!QFile::exists(backup + ".partial"));
+        const auto privateFile = QFileDevice::ReadOwner | QFileDevice::WriteOwner;
+        QCOMPARE(QFileInfo(backup).permissions() & 0x7077, privateFile);
 
         const BackupInfo info = inspectBackup(backup);
         QVERIFY2(info.valid, qPrintable(info.error));
@@ -72,6 +74,8 @@ private slots:
 
         // The replaced data was preserved and is itself a valid backup.
         QVERIFY(QFile::exists(safety));
+        QCOMPARE(QFileInfo(safety).permissions() & 0x7077, privateFile);
+        QCOMPARE(QFileInfo(live).permissions() & 0x7077, privateFile);
         QCOMPARE(inspectBackup(safety).runCount, 3);
         QVERIFY(!QFile::exists(dir.filePath("data/plainrun.db.restoring")));
 

@@ -115,6 +115,9 @@ path and has a button to open the folder. The only other file is a small
 settings file at `~/.config/plainrun/plainrun.conf`, which remembers the
 selected history view.
 
+The data folder is created readable only by you (0700), and the database
+and any backups PlainRun writes are 0600.
+
 The database is plain SQLite; see [docs/DATABASE.md](docs/DATABASE.md) for
 the schema. Nothing is ever sent anywhere.
 

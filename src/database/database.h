@@ -67,6 +67,12 @@ private:
 
 QString uniqueConnectionName(const QString &prefix);
 
+// Personal data is private to its owner: 0600 for database files PlainRun
+// creates (live database, backups, safety copies) and 0700 for the data
+// directory it creates. Existing files and directories are left as they are.
+void makePrivateFile(const QString &path);
+void makePrivateDirectory(const QString &path);
+
 // Reads the header identification of an open connection.
 struct HeaderInfo {
     bool ok = false;

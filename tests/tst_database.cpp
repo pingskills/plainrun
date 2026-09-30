@@ -49,6 +49,8 @@ private slots:
         Database db;
         QVERIFY2(db.open(p), qPrintable(db.lastError()));
         QVERIFY(QFile::exists(p));
+        QCOMPARE(QFileInfo(p).permissions() & 0x7077 /* owner/group/other */,
+                 QFileDevice::ReadOwner | QFileDevice::WriteOwner);
         QSqlDatabase c = db.connection();
         const HeaderInfo h = readHeader(c);
         QCOMPARE(h.applicationId, Database::ApplicationId);

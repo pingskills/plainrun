@@ -52,6 +52,9 @@ private slots:
         app->setFixedToday(Today);
         QVERIFY2(app->initialize(), qPrintable(app->startupError()));
         QVERIFY(QFile::exists(dbPath));
+        // A newly created data directory is private to the user.
+        QCOMPARE(QFileInfo(QFileInfo(dbPath).absolutePath()).permissions() & 0x7077,
+                 QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
         QCOMPARE(app->totalRunCount(), 0);
         QCOMPARE(app->overview().value("hasRuns").toBool(), false);
 

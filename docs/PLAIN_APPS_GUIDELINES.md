@@ -1,5 +1,9 @@
 # Plain Apps guidelines
 
+> **This is the canonical copy.** Other Plain Apps link here instead of keeping
+> their own version, so the conventions cannot drift apart. Propose changes to
+> this file.
+
 Conventions for the Plain Apps family (PlainRun, and later PlainWeight,
 PlainTasks, …).
 
@@ -42,7 +46,11 @@ icon, and the Wayland `app_id` (`QGuiApplication::setDesktopFileName`).
   - `tests/`: Qt Test, run by `ctest`.
 - Core logic, database and controller link only Qt Core and Qt SQL, so tests
   run headless. The QML module is a static library so a smoke test can load the
-  real UI offscreen and fail on any QML warning.
+  real UI offscreen and fail on any QML warning. The smoke test uses the style
+  that ships (share one `configureStyle()` between the app and the tests), not
+  a different style forced through the environment.
+- Code that depends on "today" takes the date as a parameter or has a test
+  hook to pin it, so tests don't depend on when they run.
 - **The version is declared once**, in `project(... VERSION x.y.z)`, and
   compiled in through a generated header.
 
@@ -57,6 +65,9 @@ icon, and the Wayland `app_id` (`QGuiApplication::setDesktopFileName`).
   minimal.
 - Packages **never** create, modify or delete user data. Uninstalling leaves
   data in place.
+- Personal data is private: create the data directory as 0700 and every
+  database file the app writes (live database, backups, pre-restore copies)
+  as 0600. Leave existing files and directories as the user has set them.
 - No sample data in production. Development seeding is a separate tool that
   refuses to touch the real database.
 
@@ -69,6 +80,10 @@ icon, and the Wayland `app_id` (`QGuiApplication::setDesktopFileName`).
   migrations, each in its own transaction with the version bump.
 - Refuse (don't "fix") databases that are foreign, corrupt or from a newer
   version. Never reset or recreate a database to recover from an error.
+- Report *why* an open failed as a typed value (missing, unreadable, foreign,
+  newer, damaged), so callers such as the CLI never compare error messages.
+- Keep migrations in a list that tests can extend, and test both an upgrade
+  with data present and a failing migration rolling back.
 - Store base units as integers (metres, seconds, grams, …). Store calendar
   dates as `YYYY-MM-DD` text and timestamps as ISO 8601 UTC.
 - Derive totals and statistics; don't store them.
@@ -90,6 +105,9 @@ icon, and the Wayland `app_id` (`QGuiApplication::setDesktopFileName`).
 
 - Same executable; a handful of **read-only** options for scripts and status
   bars (`--version`, `--help`, and a few app-specific queries).
+- Switch to CLI mode **only** when argv contains one of the app's own options.
+  Anything else, including standard Qt options such as `-platform` or `-style`,
+  must still start the GUI.
 - Machine-friendly output: C-locale numbers, ISO dates, tab-separated fields.
 - Exit codes: 0 success, 1 data error, 2 usage error, 3 "nothing to report".
 - Never start the GUI and never create the database from the CLI.
@@ -101,10 +119,19 @@ icon, and the Wayland `app_id` (`QGuiApplication::setDesktopFileName`).
   motivational text or decorative animation.
 - One accent colour, used for the primary action and current values.
 - Tabular figures for numbers (`font.features: { "tnum": 1 }`).
-- Follow the system/Omarchy theme; support light and dark; check contrast
-  (secondary text at least WCAG AA).
+- Follow the system/Omarchy theme; support light and dark; honour the
+  Omarchy theme's declared `mode`; compute secondary text so it keeps WCAG AA
+  contrast (4.5:1), and test that.
 - Visible keyboard focus, accessible names on controls, sensible shortcuts
-  (Ctrl+N, Ctrl+S, Ctrl+F, Ctrl+Q, Esc) shown in menus and tooltips.
+  (Ctrl+N, Ctrl+S, Ctrl+F, Ctrl+Q, Esc) shown in menus and tooltips. Declare
+  them as `Action { shortcut: … }` in the menus, so the shortcut and its label
+  can't drift apart, and give menus `&` mnemonics.
+- Number entry accepts both `.` and `,` as the decimal separator.
+- Show the version from the build (the generated config header), never a
+  literal in QML.
+- No in-window title or tagline: the window title already names the app.
+- Tiling window managers ignore the minimum window size. Check the layout
+  well below it (e.g. 580 × 300) and let it adapt or scroll.
 - No fixed window size. Choose a sensible minimum, and check at 1× and
   fractional scales.
 - No onboarding wizard. An empty state with one clear action is enough.
