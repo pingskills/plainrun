@@ -6,6 +6,13 @@ and PlainRun uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Enter on the selected run opens it for editing, as the menu and README say.
+  The row took Enter as a click, so it only re-selected the run.
+- `plainrun --week-distance` and the other command-line options failed with
+  "no such column: avg_heart_rate_bpm" on a database that PlainRun 0.2.0 had
+  not yet opened (and upgraded) in its window.
+
 ## [0.2.0] - 2026-10-01
 
 ### Added

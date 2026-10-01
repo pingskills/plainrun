@@ -1,9 +1,11 @@
 #include "database/database.h"
+#include "database/migrations.h"
 #include "database/runrepository.h"
 #include "plainrun_config.h"
 #include "services/cli.h"
 
 #include <QFile>
+#include <QSqlQuery>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -106,6 +108,32 @@ private slots:
         QCOMPARE(runCli({"--week-distance"}, missing).out, QStringLiteral("0.00\n"));
         QCOMPARE(runCli({"--last-run"}, missing).code, cli::ExitNoRuns);
         QVERIFY(!QFile::exists(missing));
+    }
+
+    void readsADatabaseNotYetUpgraded()
+    {
+        // The CLI opens read-only and never migrates, so after installing a
+        // newer PlainRun it may meet a schema-1 database the GUI hasn't
+        // upgraded yet.
+        const QString path = dir.filePath("v1.db");
+        {
+            db::Database db;
+            QVERIFY(db.open(path, db::Database::Mode::ReadWrite, db::migrations().mid(0, 1)));
+            QSqlQuery q(db.connection());
+            QVERIFY(q.exec("INSERT INTO runs (run_date, distance_metres, duration_seconds, note, created_at, "
+                           "updated_at) VALUES ('2026-09-28', 5000, 1500, '', '2026-09-28T06:00:00Z', "
+                           "'2026-09-28T06:00:00Z')"));
+        }
+        const Output last = runCli({"--last-run"}, path);
+        QCOMPARE(last.code, 0);
+        QVERIFY2(last.err.isEmpty(), qPrintable(last.err));
+        QVERIFY(last.out.startsWith("2026-09-28\t5.00"));
+        QCOMPARE(runCli({"--week-distance"}, path).out, QStringLiteral("5.00\n"));
+
+        // And it is left at schema 1: the CLI never changes the database.
+        db::ScopedConnection c(path, true);
+        QSqlDatabase raw = c.db();
+        QCOMPARE(db::userVersion(raw), 1);
     }
 
     void unreadableDatabaseIsAnError()

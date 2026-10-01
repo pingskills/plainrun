@@ -35,6 +35,10 @@ ItemDelegate {
 
     onClicked: row.activated()
     onDoubleClicked: row.edit()
+    // The current row holds focus within the list, and buttons treat Enter as
+    // a click; make Enter edit the run instead, as the menu says.
+    Keys.onReturnPressed: row.edit()
+    Keys.onEnterPressed: row.edit()
 
     background: Rectangle {
         color: row.selected ? Theme.selection : (row.hovered ? Theme.surface : "transparent")

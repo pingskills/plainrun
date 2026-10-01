@@ -138,6 +138,13 @@ private slots:
         QCOMPARE(app->runDetails(run1).value("durationText").toString(), QStringLiteral("29:30"));
         QCOMPARE(app->runDetails(run1).value("paceText").toString(), QStringLiteral("5:54/km"));
         QCOMPARE(app->periodStats().value("timeExact").toString(), QStringLiteral("1:55:30"));
+
+        // Enter on the selected run is the same as Ctrl+E.
+        key(Qt::Key_Return);
+        QVERIFY(waitFor([&] { return editorOpen() && focusedName() == "distanceField"; }));
+        QCOMPARE(find("runEditor")->property("runId").toLongLong(), run1);
+        key(Qt::Key_Escape);
+        QVERIFY(waitFor([&] { return !editorOpen(); }));
     }
 
     void deleteNeedsConfirmation()

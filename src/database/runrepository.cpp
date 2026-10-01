@@ -1,6 +1,7 @@
 #include "database/runrepository.h"
 
 #include "core/logging.h"
+#include "database/migrations.h"
 
 #include <QSqlError>
 #include <QSqlQuery>
@@ -41,9 +42,15 @@ QVariant heartRateValue(const Run &run)
     return run.heartRateBpm > 0 ? QVariant(run.heartRateBpm) : QVariant(QMetaType::fromType<int>());
 }
 
-const QString SelectColumns = QStringLiteral(
-    "SELECT id, run_date, distance_metres, duration_seconds, note, created_at, updated_at, avg_heart_rate_bpm "
-    "FROM runs");
+// A read-only connection (the CLI) is never migrated, so it may be reading an
+// older schema: select NULL for columns that schema doesn't have yet.
+QString selectColumns(QSqlDatabase &db)
+{
+    const QString heartRate = userVersion(db) >= 2 ? QStringLiteral("avg_heart_rate_bpm")
+                                                   : QStringLiteral("NULL");
+    return QStringLiteral("SELECT id, run_date, distance_metres, duration_seconds, note, created_at, updated_at, "
+                          "%1 FROM runs").arg(heartRate);
+}
 
 bool report(const QSqlQuery &q, QString *error)
 {
@@ -81,7 +88,7 @@ QList<Run> allRuns(QSqlDatabase db, QString *error)
     QList<Run> runs;
     QSqlQuery q(db);
     q.setForwardOnly(true);
-    if (!q.exec(SelectColumns + QStringLiteral(" ORDER BY run_date DESC, id DESC"))) {
+    if (!q.exec(selectColumns(db) + QStringLiteral(" ORDER BY run_date DESC, id DESC"))) {
         report(q, error);
         return runs;
     }
@@ -93,7 +100,7 @@ QList<Run> allRuns(QSqlDatabase db, QString *error)
 std::optional<Run> findRun(QSqlDatabase db, qint64 id)
 {
     QSqlQuery q(db);
-    q.prepare(SelectColumns + QStringLiteral(" WHERE id = ?"));
+    q.prepare(selectColumns(db) + QStringLiteral(" WHERE id = ?"));
     q.addBindValue(id);
     if (!q.exec() || !q.next())
         return std::nullopt;
