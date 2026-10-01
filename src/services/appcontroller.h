@@ -35,6 +35,11 @@ class AppController : public QObject
     Q_PROPERTY(QVariantList weeklyChart READ weeklyChart NOTIFY dataChanged)
     Q_PROPERTY(QVariantList monthlyChart READ monthlyChart NOTIFY dataChanged)
     Q_PROPERTY(QVariantList personalBests READ personalBests NOTIFY dataChanged)
+    // Monthly median beats per km, 12 months: [{label, value, valueText, detail, current}];
+    // value 0 for a month with too few runs with a heart rate.
+    Q_PROPERTY(QVariantList heartRateChart READ heartRateChart NOTIFY dataChanged)
+    // Number of runs (ever) with a heart rate; 0 hides the chart entirely.
+    Q_PROPERTY(int heartRateRunCount READ heartRateRunCount NOTIFY dataChanged)
 
 public:
     enum SortColumn { SortDate = 0, SortDistance = 1, SortTime = 2, SortPace = 3 };
@@ -67,21 +72,25 @@ public:
     QVariantList weeklyChart() const { return m_weeklyChart; }
     QVariantList monthlyChart() const { return m_monthlyChart; }
     QVariantList personalBests() const { return m_personalBests; }
+    QVariantList heartRateChart() const { return m_heartRateChart; }
+    int heartRateRunCount() const { return m_heartRateRunCount; }
 
     // Clicking a column header: same column toggles direction; a new column
     // starts in its natural direction (newest date, longest, longest, fastest).
     Q_INVOKABLE void sortBy(int column);
 
     // Live validation for the run form. Returns {ok, dateError, distanceError,
-    // durationError, paceText, dateLong}.
+    // durationError, heartRateError, paceText, beatsPerKmText, dateLong}.
     Q_INVOKABLE QVariantMap validateRun(const QString &date, const QString &distance,
-                                        const QString &duration) const;
+                                        const QString &duration, const QString &heartRate = {}) const;
     // Adds (id <= 0) or updates a run. Returns {ok, id, error, ...field errors}.
+    // Heart rate is optional; blank means not recorded.
     Q_INVOKABLE QVariantMap saveRun(qint64 id, const QString &date, const QString &distance,
-                                    const QString &duration, const QString &note);
+                                    const QString &duration, const QString &note,
+                                    const QString &heartRate = {});
     Q_INVOKABLE bool deleteRun(qint64 id);
     // {found, id, dateIso, dateLong, distanceText, distanceInput, durationText,
-    //  paceText, note}
+    //  paceText, note, heartRateInput, heartRateText, beatsPerKmText}
     Q_INVOKABLE QVariantMap runDetails(qint64 id) const;
 
     Q_INVOKABLE QString todayIso() const;
@@ -131,6 +140,8 @@ private:
     QVariantList m_weeklyChart;
     QVariantList m_monthlyChart;
     QVariantList m_personalBests;
+    QVariantList m_heartRateChart;
+    int m_heartRateRunCount = 0;
 
     QDate m_fixedToday;
     QDate m_lastSeenToday;

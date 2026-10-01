@@ -56,6 +56,11 @@ QString count(qint64 n, const QString &singular, const QString &plural)
     return QStringLiteral("%1 %2").arg(n).arg(n == 1 ? singular : plural);
 }
 
+QString beatsPerKmText(qint64 beats)
+{
+    return beats > 0 ? AppController::tr("%1 beats/km").arg(beats) : QString();
+}
+
 QString runsText(qint64 n)
 {
     return count(n, AppController::tr("run"), AppController::tr("runs"));
@@ -226,6 +231,28 @@ void AppController::recomputeData()
     }
     m_personalBests = pbs;
 
+    QVariantList heartRate;
+    const QList<HeartRateMonth> hrMonths = monthlyBeatsPerKm(m_allRuns, now, MonthlyChartMonths);
+    for (qsizetype i = 0; i < hrMonths.size(); ++i) {
+        const HeartRateMonth &m = hrMonths.at(i);
+        const QString month = locale.toString(m.range.first, QStringLiteral("MMMM yyyy"));
+        QString detail;
+        if (m.beatsPerKm > 0)
+            detail = tr("%1: median %2 over %3").arg(month, beatsPerKmText(m.beatsPerKm), runsText(m.runs));
+        else if (m.runs > 0)
+            detail = tr("%1: %2 with heart rate (needs %3)").arg(month, runsText(m.runs)).arg(MinHeartRateRunsPerMonth);
+        heartRate.append(QVariantMap{
+            {QStringLiteral("label"), locale.toString(m.range.first, QStringLiteral("MMM"))},
+            {QStringLiteral("value"), static_cast<double>(m.beatsPerKm)},
+            {QStringLiteral("valueText"), beatsPerKmText(m.beatsPerKm)},
+            {QStringLiteral("detail"), detail},
+            {QStringLiteral("current"), i == hrMonths.size() - 1},
+        });
+    }
+    m_heartRateChart = heartRate;
+    m_heartRateRunCount = static_cast<int>(
+        std::count_if(m_allRuns.cbegin(), m_allRuns.cend(), [](const Run &r) { return r.heartRateBpm > 0; }));
+
     emit dataChanged();
     recomputeView();
 }
@@ -317,25 +344,30 @@ void AppController::sortBy(int column)
 }
 
 QVariantMap AppController::validateRun(const QString &date, const QString &distance,
-                                       const QString &duration) const
+                                       const QString &duration, const QString &heartRate) const
 {
-    const RunValidation v = validateRunInput(date, distance, duration, today());
+    const RunValidation v = validateRunInput(date, distance, duration, heartRate, today());
     QVariantMap m;
     m[QStringLiteral("ok")] = v.ok();
     m[QStringLiteral("dateError")] = v.dateError;
     m[QStringLiteral("distanceError")] = v.distanceError;
     m[QStringLiteral("durationError")] = v.durationError;
+    m[QStringLiteral("heartRateError")] = v.heartRateError;
     const bool paceKnown = v.distanceError.isEmpty() && v.durationError.isEmpty();
     m[QStringLiteral("paceText")] = paceKnown ? paceText(v.distanceMetres, v.durationSeconds) : QString();
+    m[QStringLiteral("beatsPerKmText")] = paceKnown && v.heartRateError.isEmpty()
+        ? beatsPerKmText(beatsPerKm(v.distanceMetres, v.durationSeconds, v.heartRateBpm))
+        : QString();
     m[QStringLiteral("dateLong")] = v.date.isValid() ? QLocale().toString(v.date, QStringLiteral("dddd d MMMM yyyy"))
                                                      : QString();
     return m;
 }
 
 QVariantMap AppController::saveRun(qint64 id, const QString &date, const QString &distance,
-                                   const QString &duration, const QString &note)
+                                   const QString &duration, const QString &note,
+                                   const QString &heartRate)
 {
-    QVariantMap out = validateRun(date, distance, duration);
+    QVariantMap out = validateRun(date, distance, duration, heartRate);
     if (!out.value(QStringLiteral("ok")).toBool()) {
         out[QStringLiteral("message")] = tr("Please check the highlighted fields.");
         return out;
@@ -346,13 +378,14 @@ QVariantMap AppController::saveRun(qint64 id, const QString &date, const QString
         return out;
     }
 
-    const RunValidation v = validateRunInput(date, distance, duration, today());
+    const RunValidation v = validateRunInput(date, distance, duration, heartRate, today());
     Run run;
     run.id = id > 0 ? id : 0;
     run.date = v.date;
     run.distanceMetres = v.distanceMetres;
     run.durationSeconds = v.durationSeconds;
     run.note = normaliseNote(note);
+    run.heartRateBpm = v.heartRateBpm;
 
     QString error;
     const bool ok = run.id > 0 ? db::updateRun(m_db.connection(), run, &error)
@@ -395,6 +428,10 @@ QVariantMap AppController::runDetails(qint64 id) const
         {QStringLiteral("durationText"), formatDuration(r.durationSeconds)},
         {QStringLiteral("paceText"), paceText(r.distanceMetres, r.durationSeconds)},
         {QStringLiteral("note"), r.note},
+        {QStringLiteral("heartRateInput"), r.heartRateBpm > 0 ? QString::number(r.heartRateBpm) : QString()},
+        {QStringLiteral("heartRateText"), r.heartRateBpm > 0 ? tr("%1 bpm").arg(r.heartRateBpm) : QString()},
+        {QStringLiteral("beatsPerKmText"),
+         beatsPerKmText(beatsPerKm(r.distanceMetres, r.durationSeconds, r.heartRateBpm))},
     };
 }
 

@@ -2,7 +2,7 @@
 // Renders the real QML interface offscreen and saves a PNG, for reviewing the
 // layout at different sizes, themes and scale factors without a desktop.
 //
-//   QT_QPA_PLATFORM=offscreen plainrun-uishot <db> <out.png> [width height] [select|editor|add|none]
+//   QT_QPA_PLATFORM=offscreen plainrun-uishot <db> <out.png> [width height] [select|editor|add|trends|none]
 #include "services/appcontroller.h"
 #include "ui/theme.h"
 #include "ui/uisetup.h"
@@ -46,6 +46,8 @@ int main(int argc, char *argv[])
             window->setProperty("selectedRunId", controller.runs()->idAt(0));
         if (mode == QLatin1String("editor"))
             QMetaObject::invokeMethod(window, "editRun", Q_ARG(QVariant, QVariant(controller.runs()->idAt(0))));
+        if (mode == QLatin1String("trends"))
+            window->setProperty("showTrends", true);
         if (mode == QLatin1String("add"))
             QMetaObject::invokeMethod(window, "addRun");
     });

@@ -27,6 +27,13 @@ const QList<Migration> &migrations()
                  ")"),
              QStringLiteral("CREATE INDEX runs_run_date_idx ON runs (run_date)"),
          }},
+        {2,
+         {
+             // Optional average heart rate; NULL when not recorded.
+             QStringLiteral(
+                 "ALTER TABLE runs ADD COLUMN avg_heart_rate_bpm INTEGER"
+                 "  CHECK (avg_heart_rate_bpm IS NULL OR avg_heart_rate_bpm BETWEEN 30 AND 250)"),
+         }},
     };
     return list;
 }

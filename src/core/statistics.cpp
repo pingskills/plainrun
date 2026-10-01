@@ -2,6 +2,8 @@
 
 #include "core/runformat.h"
 
+#include <algorithm>
+
 namespace plainrun {
 
 qint64 Totals::averagePaceSecondsPerKm() const
@@ -44,6 +46,31 @@ QList<Bucket> monthlyBuckets(const QList<Run> &runs, const QDate &today, int cou
         buckets.append({range, totalsIn(runs, range)});
     }
     return buckets;
+}
+
+QList<HeartRateMonth> monthlyBeatsPerKm(const QList<Run> &runs, const QDate &today, int count)
+{
+    QList<HeartRateMonth> months;
+    months.reserve(count);
+    const QDate thisMonth(today.year(), today.month(), 1);
+    for (int i = count - 1; i >= 0; --i) {
+        HeartRateMonth m;
+        m.range = monthContaining(thisMonth.addMonths(-i));
+        QList<qint64> values;
+        for (const Run &r : runs) {
+            if (r.heartRateBpm > 0 && m.range.contains(r.date))
+                values.append(beatsPerKm(r.distanceMetres, r.durationSeconds, r.heartRateBpm));
+        }
+        m.runs = static_cast<int>(values.size());
+        if (m.runs >= MinHeartRateRunsPerMonth) {
+            std::sort(values.begin(), values.end());
+            const qsizetype mid = values.size() / 2;
+            // Even count: the mean of the middle two, rounded half up.
+            m.beatsPerKm = values.size() % 2 ? values.at(mid) : (values.at(mid - 1) + values.at(mid) + 1) / 2;
+        }
+        months.append(m);
+    }
+    return months;
 }
 
 Overview overviewFor(const QList<Run> &runs, const QDate &today)

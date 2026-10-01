@@ -1,6 +1,7 @@
 // Drives the real QML interface with keyboard events only (offscreen), covering
 // the primary workflows: add (with Tab order and Ctrl+S), validation, cancel,
-// edit (Ctrl+E), delete with confirmation, search (Ctrl+F) and period keys.
+// edit (Ctrl+E), delete with confirmation, search (Ctrl+F), period keys, heart
+// rate, and the narrow-window Runs | Trends switch (Ctrl+T).
 #include "services/appcontroller.h"
 #include "ui/theme.h"
 #include "ui/uisetup.h"
@@ -190,6 +191,65 @@ private slots:
         const qint64 selected = window->property("selectedRunId").toLongLong();
         QCOMPARE(app->runDetails(selected).value("dateIso").toString(), QStringLiteral("2026-08-01"));
         QVERIFY(app->runs()->indexOfId(selected) >= 0);
+    }
+
+    void heartRateByKeyboard()
+    {
+        key(Qt::Key_N, Qt::ControlModifier);
+        QVERIFY(waitFor([&] { return editorOpen() && focusedName() == "distanceField"; }));
+        type("5");
+        key(Qt::Key_Tab);
+        type("27:30");
+        key(Qt::Key_Tab);
+        QCOMPARE(focusedName(), QStringLiteral("heartRateField"));
+        type("145");
+        key(Qt::Key_S, Qt::ControlModifier);
+        QVERIFY(waitFor([&] { return !editorOpen(); }));
+        const qint64 id = window->property("selectedRunId").toLongLong();
+        QCOMPARE(app->runDetails(id).value("heartRateText").toString(), QStringLiteral("145 bpm"));
+        QCOMPARE(find("selectedHeartRate")->property("text").toString(), QStringLiteral("145 bpm · 798 beats/km"));
+    }
+
+    void narrowWindowSwitchesBetweenRunsAndTrends()
+    {
+        auto *panel = qobject_cast<QQuickItem *>(find("trendsPanel"));
+        QVERIFY(panel->isVisible()); // wide: always beside the list
+        key(Qt::Key_T, Qt::ControlModifier);
+        QVERIFY(!window->property("trendsShown").toBool()); // nothing to switch when wide
+
+        window->resize(600, 500);
+        QVERIFY(waitFor([&] { return window->property("compact").toBool(); }));
+        QVERIFY(!panel->isVisible());
+        QVERIFY(qobject_cast<QQuickItem *>(find("runsViewSwitch"))->isVisible());
+
+        key(Qt::Key_T, Qt::ControlModifier);
+        QVERIFY(waitFor([&] { return panel->isVisible(); }));
+        QVERIFY(window->property("trendsShown").toBool());
+        key(Qt::Key_T, Qt::ControlModifier);
+        QVERIFY(waitFor([&] { return !panel->isVisible(); }));
+
+        // Search collapses to a button, and Ctrl+F still works from Trends.
+        auto *searchButton = qobject_cast<QQuickItem *>(find("searchButton"));
+        QVERIFY(searchButton->isVisible());
+        key(Qt::Key_T, Qt::ControlModifier);
+        QVERIFY(waitFor([&] { return panel->isVisible(); }));
+        key(Qt::Key_F, Qt::ControlModifier);
+        QVERIFY(waitFor([&] { return focusedName() == "searchField"; }));
+        QVERIFY(!window->property("trendsShown").toBool());
+        type("bay");
+        QCOMPARE(app->runs()->count(), 1);
+        key(Qt::Key_Escape);
+        QVERIFY(waitFor([&] { return searchButton->isVisible(); }));
+        QCOMPARE(app->search(), QString());
+
+        // A period shortcut from Trends goes back to the runs.
+        key(Qt::Key_T, Qt::ControlModifier);
+        QVERIFY(waitFor([&] { return panel->isVisible(); }));
+        key(Qt::Key_4, Qt::ControlModifier);
+        QVERIFY(waitFor([&] { return !panel->isVisible(); }));
+
+        window->resize(1080, 720);
+        QVERIFY(waitFor([&] { return panel->isVisible() && !window->property("compact").toBool(); }));
     }
 
     void noQmlWarnings()

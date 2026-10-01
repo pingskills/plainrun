@@ -42,10 +42,18 @@ QString durationProblem(qint64 seconds)
     return {};
 }
 
+QString heartRateProblem(int bpm)
+{
+    if (bpm != 0 && (bpm < MinHeartRateBpm || bpm > MaxHeartRateBpm))
+        return tr("Heart rate must be between 30 and 250 bpm.");
+    return {};
+}
+
 } // namespace
 
 RunValidation validateRunInput(const QString &date, const QString &distance,
-                               const QString &duration, const QDate &today)
+                               const QString &duration, const QString &heartRate,
+                               const QDate &today)
 {
     RunValidation v;
 
@@ -76,17 +84,29 @@ RunValidation validateRunInput(const QString &date, const QString &distance,
         v.durationError = tr("Enter a time like 28:15 or 1:02:30.");
     }
 
+    if (!heartRate.trimmed().isEmpty()) {
+        if (auto bpm = parseHeartRate(heartRate)) {
+            v.heartRateBpm = *bpm;
+            v.heartRateError = *bpm == 0 ? tr("Heart rate must be between 30 and 250 bpm.")
+                                         : heartRateProblem(v.heartRateBpm);
+        } else {
+            v.heartRateError = tr("Enter heart rate as whole beats per minute, like 148.");
+        }
+    }
+
     return v;
 }
 
 QString validateRunValues(const QDate &date, qint64 distanceMetres,
-                          qint64 durationSeconds, const QDate &today)
+                          qint64 durationSeconds, int heartRateBpm, const QDate &today)
 {
     QString p = dateProblem(date, today);
     if (p.isEmpty())
         p = distanceProblem(distanceMetres);
     if (p.isEmpty())
         p = durationProblem(durationSeconds);
+    if (p.isEmpty())
+        p = heartRateProblem(heartRateBpm);
     return p;
 }
 

@@ -9,6 +9,7 @@ Pane {
     id: bar
 
     readonly property var o: App.overview
+    property bool condensed: false
     readonly property bool narrow: width < Theme.fontSize * 72
 
     function runsText(count, time) {
@@ -18,8 +19,8 @@ Pane {
     }
 
     padding: 16
-    topPadding: 14
-    bottomPadding: 14
+    topPadding: condensed ? 8 : 14
+    bottomPadding: condensed ? 8 : 14
     background: Rectangle { color: Theme.background }
 
     RowLayout {
@@ -30,43 +31,43 @@ Pane {
             Layout.fillWidth: true
             Layout.preferredWidth: 1
             Layout.alignment: Qt.AlignTop
-            valueScale: bar.narrow ? 1.25 : 1.55
+            valueScale: bar.condensed ? 1.1 : bar.narrow ? 1.25 : 1.55
             label: qsTr("Last run")
             value: bar.o.hasRuns ? bar.o.lastRunDate : qsTr("No runs yet")
-            detail: bar.o.hasRuns ? bar.o.lastRunAgo : ""
-            secondary: bar.o.hasRuns ? bar.o.lastRunDistance + " · " + bar.o.lastRunPace : ""
+            detail: bar.condensed ? "" : bar.o.hasRuns ? bar.o.lastRunAgo : ""
+            secondary: bar.condensed ? "" : bar.o.hasRuns ? bar.o.lastRunDistance + " · " + bar.o.lastRunPace : ""
         }
         SummaryCell {
             Layout.fillWidth: true
             Layout.preferredWidth: 1
             Layout.alignment: Qt.AlignTop
-            valueScale: bar.narrow ? 1.25 : 1.55
+            valueScale: bar.condensed ? 1.1 : bar.narrow ? 1.25 : 1.55
             label: qsTr("This week")
             value: bar.o.weekKm
-            detail: bar.runsText(bar.o.weekRuns, bar.o.weekTime)
-            secondary: bar.o.prevWeekRuns > 0 ? qsTr("Last week %1").arg(bar.o.prevWeekKm)
+            detail: bar.condensed ? "" : bar.runsText(bar.o.weekRuns, bar.o.weekTime)
+            secondary: bar.condensed ? "" : bar.o.prevWeekRuns > 0 ? qsTr("Last week %1").arg(bar.o.prevWeekKm)
                                               : bar.o.hasRuns ? qsTr("No runs last week") : ""
         }
         SummaryCell {
             Layout.fillWidth: true
             Layout.preferredWidth: 1
             Layout.alignment: Qt.AlignTop
-            valueScale: bar.narrow ? 1.25 : 1.55
+            valueScale: bar.condensed ? 1.1 : bar.narrow ? 1.25 : 1.55
             label: qsTr("This month")
             value: bar.o.monthKm
-            detail: bar.runsText(bar.o.monthRuns, bar.o.monthTime)
-            secondary: bar.o.prevMonthRuns > 0 ? qsTr("Last month %1").arg(bar.o.prevMonthKm)
+            detail: bar.condensed ? "" : bar.runsText(bar.o.monthRuns, bar.o.monthTime)
+            secondary: bar.condensed ? "" : bar.o.prevMonthRuns > 0 ? qsTr("Last month %1").arg(bar.o.prevMonthKm)
                                                : bar.o.hasRuns ? qsTr("No runs last month") : ""
         }
         SummaryCell {
             Layout.fillWidth: true
             Layout.preferredWidth: 1
             Layout.alignment: Qt.AlignTop
-            valueScale: bar.narrow ? 1.25 : 1.55
+            valueScale: bar.condensed ? 1.1 : bar.narrow ? 1.25 : 1.55
             label: qsTr("This year")
             value: bar.o.yearKm
-            detail: bar.runsText(bar.o.yearRuns, bar.o.yearTime)
-            secondary: bar.o.yearRuns > 0 ? qsTr("Average pace %1").arg(bar.o.yearPace) : ""
+            detail: bar.condensed ? "" : bar.runsText(bar.o.yearRuns, bar.o.yearTime)
+            secondary: bar.condensed ? "" : bar.o.yearRuns > 0 ? qsTr("Average pace %1").arg(bar.o.yearPace) : ""
         }
     }
 }

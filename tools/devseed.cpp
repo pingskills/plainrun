@@ -71,6 +71,11 @@ int main(int argc, char *argv[])
         const int paceSeconds = (dow == 6 ? 300 : 335) + rng.bounded(40) - 20;
         r.durationSeconds = r.distanceMetres * paceSeconds / 1000;
         r.note = notes.at(rng.bounded(notes.size()));
+        // Heart rate from a watch bought ~10 months ago, sometimes forgotten.
+        // Fitness improves: the same effort costs a few beats less over time.
+        const qint64 daysAgo = d.daysTo(today);
+        if (daysAgo < 300 && rng.bounded(8) != 0)
+            r.heartRateBpm = 141 + int(daysAgo / 40) + (dow == 6 ? 12 : 0) + rng.bounded(9) - 4;
         runs.append(r);
     }
     // A few race-distance runs so personal bests appear.

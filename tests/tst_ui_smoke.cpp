@@ -57,6 +57,18 @@ private slots:
         app.sortBy(AppController::SortPace);
         QTest::qWait(50);
 
+        // Heart rates arriving, then the narrow and short layouts with Trends shown.
+        for (int day = 0; day < 3; ++day)
+            QVERIFY(app.saveRun(-1, app.shiftDate(app.todayIso(), -day), "5", "27:00", "", "150").value("ok").toBool());
+        window->setProperty("selectedRunId", app.runs()->idAt(0));
+        window->resize(600, 300);
+        QTest::qWait(50);
+        QVERIFY(window->property("compact").toBool());
+        QVERIFY(window->property("shortWindow").toBool());
+        QMetaObject::invokeMethod(window, "showTrendsView");
+        QTest::qWait(50);
+        QVERIFY(window->property("trendsShown").toBool());
+
         QStringList messages;
         for (const QQmlError &e : warnings)
             messages << e.toString();

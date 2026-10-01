@@ -137,6 +137,29 @@ private slots:
         QCOMPARE(formatKm(7200, 1, QLocale(QLocale::German)), QStringLiteral("7,2"));
     }
 
+    void heartRate()
+    {
+        QCOMPARE(parseHeartRate("148").value(), 148);
+        QCOMPARE(parseHeartRate(" 148 BPM").value(), 148);
+        QCOMPARE(parseHeartRate("0").value(), 0); // parsed; rejected by validation
+        QVERIFY(!parseHeartRate(""));
+        QVERIFY(!parseHeartRate("bpm"));
+        QVERIFY(!parseHeartRate("148.5"));
+        QVERIFY(!parseHeartRate("1480"));
+        QVERIFY(!parseHeartRate("-1"));
+    }
+
+    void beatsPerKm()
+    {
+        // 145 bpm at 5:30/km: 145 × 5.5 = 797.5, rounded half up.
+        QCOMPARE(plainrun::beatsPerKm(5000, 5 * 330, 145), 798);
+        // 10 km in 50:00 at 160 bpm: 160 × 5 = 800.
+        QCOMPARE(plainrun::beatsPerKm(10000, 3000, 160), 800);
+        QCOMPARE(plainrun::beatsPerKm(5000, 1650, 0), 0);
+        QCOMPARE(plainrun::beatsPerKm(0, 1650, 145), 0);
+        QCOMPARE(plainrun::beatsPerKm(5000, 0, 145), 0);
+    }
+
     void isoDates()
     {
         QCOMPARE(parseIsoDate("2026-09-30").value(), QDate(2026, 9, 30));

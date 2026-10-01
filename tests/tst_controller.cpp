@@ -27,8 +27,8 @@ QStringList state(const AppController &app)
 {
     QStringList rows;
     for (const Run &r : app.allRuns())
-        rows << QStringLiteral("%1|%2|%3|%4").arg(r.date.toString(Qt::ISODate)).arg(r.distanceMetres)
-                    .arg(r.durationSeconds).arg(r.note);
+        rows << QStringLiteral("%1|%2|%3|%4|%5").arg(r.date.toString(Qt::ISODate)).arg(r.distanceMetres)
+                    .arg(r.durationSeconds).arg(r.note).arg(r.heartRateBpm);
     return rows;
 }
 
@@ -202,7 +202,7 @@ private slots:
         app.setFixedToday(Today);
         QVERIFY(app.initialize());
         QVERIFY(app.saveRun(-1, "2026-09-20", "5", "29:30", "Easy, \"windy\"").value("ok").toBool());
-        QVERIFY(app.saveRun(-1, "2026-09-27", "10", "58:00", "Ünïcödé\nsecond line").value("ok").toBool());
+        QVERIFY(app.saveRun(-1, "2026-09-27", "10", "58:00", "Ünïcödé\nsecond line", "152").value("ok").toBool());
 
         const QUrl file = QUrl::fromLocalFile(home.filePath("runs.csv"));
         QVERIFY(app.exportCsv(file).value("ok").toBool());
@@ -232,6 +232,50 @@ private slots:
         QVERIFY(!rejected.value("ok").toBool());
         QVERIFY(rejected.value("details").toString().contains("Line 3"));
         QCOMPARE(other.totalRunCount(), 2);
+    }
+
+    void heartRateIsOptionalAndDrivesBeatsPerKm()
+    {
+        QTemporaryDir home;
+        AppController app(home.filePath("plainrun.db"));
+        app.setFixedToday(Today);
+        QVERIFY(app.initialize());
+        QCOMPARE(app.heartRateRunCount(), 0);
+
+        // Live form feedback: beats per km appears beside the pace.
+        const QVariantMap check = app.validateRun("2026-09-20", "5", "27:30", "145");
+        QCOMPARE(check.value("beatsPerKmText").toString(), QStringLiteral("798 beats/km"));
+        QVERIFY(app.validateRun("2026-09-20", "5", "27:30", "").value("beatsPerKmText").toString().isEmpty());
+        const QVariantMap bad = app.saveRun(-1, "2026-09-20", "5", "27:30", "", "300");
+        QVERIFY(!bad.value("ok").toBool());
+        QVERIFY(!bad.value("heartRateError").toString().isEmpty());
+        QCOMPARE(app.totalRunCount(), 0);
+
+        const qint64 id = app.saveRun(-1, "2026-09-20", "5", "27:30", "", "145").value("id").toLongLong();
+        QVariantMap d = app.runDetails(id);
+        QCOMPARE(d.value("heartRateInput").toString(), QStringLiteral("145"));
+        QCOMPARE(d.value("heartRateText").toString(), QStringLiteral("145 bpm"));
+        QCOMPARE(d.value("beatsPerKmText").toString(), QStringLiteral("798 beats/km"));
+        QCOMPARE(app.heartRateRunCount(), 1);
+
+        // Clearing the field removes the heart rate.
+        QVERIFY(app.saveRun(id, "2026-09-20", "5", "27:30", "", "").value("ok").toBool());
+        d = app.runDetails(id);
+        QVERIFY(d.value("heartRateText").toString().isEmpty());
+        QVERIFY(d.value("beatsPerKmText").toString().isEmpty());
+        QCOMPARE(app.heartRateRunCount(), 0);
+
+        // Three runs with a heart rate give September a median.
+        QVERIFY(app.saveRun(id, "2026-09-20", "5", "25:00", "", "150").value("ok").toBool()); // 750
+        QVERIFY(app.saveRun(-1, "2026-09-22", "5", "25:00", "", "140").value("ok").toBool()); // 700
+        QVERIFY(app.saveRun(-1, "2026-09-24", "5", "25:00", "", "170").value("ok").toBool()); // 850
+        const QVariantList chart = app.heartRateChart();
+        QCOMPARE(chart.size(), 12);
+        const QVariantMap september = chart.last().toMap();
+        QCOMPARE(september.value("value").toDouble(), 750.0);
+        QCOMPARE(september.value("valueText").toString(), QStringLiteral("750 beats/km"));
+        QVERIFY(september.value("current").toBool());
+        QCOMPARE(chart.first().toMap().value("value").toDouble(), 0.0);
     }
 
     void unopenableDatabaseReportsErrorWithoutDestroyingIt()

@@ -88,6 +88,16 @@ std::optional<qint64> parseDistanceMetres(const QString &text)
     return metres;
 }
 
+std::optional<int> parseHeartRate(const QString &text)
+{
+    QString s = text.trimmed();
+    if (s.endsWith(QLatin1String("bpm"), Qt::CaseInsensitive))
+        s = s.chopped(3).trimmed();
+    if (!allDigits(s) || s.size() > 3)
+        return std::nullopt;
+    return s.toInt();
+}
+
 std::optional<QDate> parseIsoDate(const QString &text)
 {
     static const QRegularExpression re(QStringLiteral("^\\d{4}-\\d{2}-\\d{2}$"));
@@ -106,6 +116,16 @@ qint64 paceSecondsPerKm(qint64 distanceMetres, qint64 durationSeconds)
         return 0;
     // Integer arithmetic, rounding half up.
     return (durationSeconds * 1000 + distanceMetres / 2) / distanceMetres;
+}
+
+qint64 beatsPerKm(qint64 distanceMetres, qint64 durationSeconds, int heartRateBpm)
+{
+    if (distanceMetres <= 0 || durationSeconds <= 0 || heartRateBpm <= 0)
+        return 0;
+    // bpm × (seconds / 60) / (metres / 1000), in integers, rounding half up.
+    const qint64 numerator = qint64(heartRateBpm) * durationSeconds * 1000;
+    const qint64 denominator = distanceMetres * 60;
+    return (numerator + denominator / 2) / denominator;
 }
 
 QString formatDuration(qint64 seconds)

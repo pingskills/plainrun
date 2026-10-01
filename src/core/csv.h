@@ -9,13 +9,14 @@
 namespace plainrun::csv {
 
 // Format (UTF-8, comma separated, RFC 4180 quoting, LF line endings):
-//   date,distance_km,duration,pace,note
-//   2026-09-30,5.000,28:15,5:39,"Easy run, around Karkarook"
+//   date,distance_km,duration,pace,avg_hr_bpm,note
+//   2026-09-30,5.000,28:15,5:39,148,"Easy run, around Karkarook"
 // date is ISO 8601; distance_km has three decimals (exact metres);
-// duration is m:ss or h:mm:ss; pace is informational and ignored on import.
+// duration is m:ss or h:mm:ss; pace is informational and ignored on import;
+// avg_hr_bpm is whole beats per minute, empty when not recorded.
 inline const QStringList Header = {QStringLiteral("date"), QStringLiteral("distance_km"),
                                    QStringLiteral("duration"), QStringLiteral("pace"),
-                                   QStringLiteral("note")};
+                                   QStringLiteral("avg_hr_bpm"), QStringLiteral("note")};
 
 QString escapeField(const QString &field);
 

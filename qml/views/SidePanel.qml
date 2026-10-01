@@ -4,19 +4,17 @@ import QtQuick.Layouts
 import PlainRun
 import PlainRun.Core
 
-// Right-hand column: the selected run, two small charts and personal bests.
+// Trends: distance charts, beats per km and personal bests. A right-hand
+// column in the wide layout, a full view (Runs | Trends) in the compact one.
 ScrollView {
     id: panel
 
-    property var selectedRunId: -1
-    signal editRequested(var runId)
-    signal deleteRequested(var runId)
+    property bool compact: false
+    signal runsRequested()
+    signal addRequested()
 
-    // Re-evaluated whenever the data or the selection changes.
-    readonly property var run: {
-        App.totalRunCount; App.overview // dependencies
-        return selectedRunId > 0 ? App.runDetails(selectedRunId) : { found: false }
-    }
+    // A line needs two points: months with enough runs with a heart rate.
+    readonly property int heartRateMonths: App.heartRateChart.filter(p => p.value > 0).length
 
     contentWidth: availableWidth
     clip: true
@@ -26,97 +24,43 @@ ScrollView {
         width: panel.availableWidth
         spacing: 0
 
-        // --- Selected run --------------------------------------------------
-        ColumnLayout {
+        // --- Compact header: switch back to Runs ---------------------------
+        RowLayout {
             Layout.fillWidth: true
-            Layout.margins: 16
-            spacing: 6
-
-            SectionLabel { text: qsTr("Run") }
-
-            Label {
-                Layout.fillWidth: true
-                visible: !panel.run.found
-                text: App.totalRunCount > 0 ? qsTr("Select a run to see its details.")
-                                            : qsTr("Your runs will appear here.")
-                color: Theme.mutedText
-                wrapMode: Text.Wrap
+            Layout.leftMargin: 10
+            Layout.rightMargin: 16
+            Layout.topMargin: 8
+            visible: panel.compact
+            spacing: 12
+            TabSwitch {
+                objectName: "trendsViewSwitch"
+                name: qsTr("View")
+                current: 1
+                tabs: [{ text: qsTr("Runs"), tip: qsTr("Runs (Ctrl+T)") },
+                       { text: qsTr("Trends"), tip: qsTr("Trends (Ctrl+T)") }]
+                onChosen: i => { if (i === 0) panel.runsRequested() }
             }
-
-            Label {
-                Layout.fillWidth: true
-                visible: panel.run.found
-                text: panel.run.dateLong || ""
-                font.weight: Font.DemiBold
-                wrapMode: Text.Wrap
-            }
-
-            GridLayout {
-                visible: panel.run.found
-                columns: 3
-                columnSpacing: 20
-                rowSpacing: 0
-                Layout.topMargin: 2
-
-                SectionLabel { text: qsTr("Distance") }
-                SectionLabel { text: qsTr("Time") }
-                SectionLabel { text: qsTr("Pace") }
-                Label {
-                    text: panel.run.distanceText || ""
-                    font.pointSize: Theme.fontSize * 1.25
-                    font.features: { "tnum": 1 }
-                }
-                Label {
-                    text: panel.run.durationText || ""
-                    font.pointSize: Theme.fontSize * 1.25
-                    font.features: { "tnum": 1 }
-                }
-                Label {
-                    text: panel.run.paceText || ""
-                    font.pointSize: Theme.fontSize * 1.25
-                    font.features: { "tnum": 1 }
-                }
-            }
-
-            TextEdit {
-                Layout.fillWidth: true
-                Layout.topMargin: 4
-                visible: panel.run.found && (panel.run.note || "").length > 0
-                text: panel.run.note || ""
-                readOnly: true
-                selectByMouse: true
-                wrapMode: Text.Wrap
-                color: Theme.text
-                selectionColor: Theme.selection
-                selectedTextColor: Theme.selectionText
-                font: Qt.application.font
-                Accessible.name: qsTr("Note")
-            }
-
-            RowLayout {
-                visible: panel.run.found
-                Layout.topMargin: 6
-                spacing: 8
-                Button {
-                    text: qsTr("Edit")
-                    onClicked: panel.editRequested(panel.selectedRunId)
-                    ToolTip.visible: hovered
-                    ToolTip.delay: 700
-                    ToolTip.text: qsTr("Edit this run (Ctrl+E)")
-                }
-                Button {
-                    text: qsTr("Delete")
-                    onClicked: panel.deleteRequested(panel.selectedRunId)
-                    ToolTip.visible: hovered
-                    ToolTip.delay: 700
-                    ToolTip.text: qsTr("Delete this run (Delete)")
-                }
+            Item { Layout.fillWidth: true }
+            AccentButton {
+                text: qsTr("Add Run")
+                onClicked: panel.addRequested()
+                Accessible.name: qsTr("Add run")
+                ToolTip.visible: hovered
+                ToolTip.delay: 700
+                ToolTip.text: qsTr("Add a run (Ctrl+N)")
             }
         }
 
-        // --- Charts ----------------------------------------------------------
-        Rectangle { Layout.fillWidth: true; height: 1; color: Theme.border; visible: App.totalRunCount > 0 }
+        Label {
+            Layout.fillWidth: true
+            Layout.margins: 16
+            visible: App.totalRunCount === 0
+            text: qsTr("Weekly and monthly distance and your personal bests will appear here.")
+            color: Theme.mutedText
+            wrapMode: Text.Wrap
+        }
 
+        // --- Charts ----------------------------------------------------------
         ColumnLayout {
             Layout.fillWidth: true
             Layout.margins: 16
@@ -126,7 +70,7 @@ ScrollView {
             SectionLabel { text: qsTr("Weekly distance · 12 weeks") }
             BarChart {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 130
+                Layout.preferredHeight: 104
                 title: qsTr("Weekly distance")
                 points: App.weeklyChart
                 labelEvery: 4
@@ -134,14 +78,37 @@ ScrollView {
 
             SectionLabel {
                 text: qsTr("Monthly distance · 12 months")
-                Layout.topMargin: 16
+                Layout.topMargin: 10
             }
             BarChart {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 130
+                Layout.preferredHeight: 104
                 title: qsTr("Monthly distance")
                 points: App.monthlyChart
                 labelEvery: 3
+            }
+
+            // Hidden entirely until a heart rate has been recorded.
+            SectionLabel {
+                visible: App.heartRateRunCount > 0
+                text: qsTr("Beats per km · monthly median")
+                Layout.topMargin: 10
+            }
+            TrendChart {
+                visible: App.heartRateRunCount > 0 && panel.heartRateMonths >= 2
+                Layout.fillWidth: true
+                Layout.preferredHeight: 92
+                title: qsTr("Beats per km")
+                unit: qsTr("beats/km")
+                points: App.heartRateChart
+                labelEvery: 3
+            }
+            Label {
+                Layout.fillWidth: true
+                visible: App.heartRateRunCount > 0 && panel.heartRateMonths < 2
+                text: qsTr("Heart rate × minutes per km. Shows once two months each have three runs with a heart rate.")
+                color: Theme.mutedText
+                wrapMode: Text.Wrap
             }
         }
 

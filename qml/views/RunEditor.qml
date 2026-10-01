@@ -11,7 +11,8 @@ Dialog {
 
     property var runId: -1
     property bool attempted: false
-    readonly property var check: App.validateRun(dateField.text, distanceField.text, durationField.text)
+    readonly property var check: App.validateRun(dateField.text, distanceField.text, durationField.text,
+                                                 heartRateField.text)
 
     signal saved(var runId)
 
@@ -20,6 +21,7 @@ Dialog {
         dateField.text = App.todayIso()
         distanceField.text = ""
         durationField.text = ""
+        heartRateField.text = ""
         noteField.text = ""
         attempted = false
         saveError.text = ""
@@ -34,6 +36,7 @@ Dialog {
         dateField.text = r.dateIso
         distanceField.text = r.distanceInput
         durationField.text = r.durationText
+        heartRateField.text = r.heartRateInput
         noteField.text = r.note
         attempted = false
         saveError.text = ""
@@ -42,17 +45,20 @@ Dialog {
 
     function save() {
         attempted = true
-        const result = App.saveRun(runId, dateField.text, distanceField.text, durationField.text, noteField.text)
+        const result = App.saveRun(runId, dateField.text, distanceField.text, durationField.text, noteField.text,
+                                   heartRateField.text)
         if (result.ok) {
             close()
             saved(result.id)
             return
         }
         const hasFieldError = result.dateError || result.distanceError || result.durationError
+                              || result.heartRateError
         saveError.text = hasFieldError ? "" : result.message
         if (result.dateError) dateField.forceActiveFocus()
         else if (result.distanceError) distanceField.forceActiveFocus()
         else if (result.durationError) durationField.forceActiveFocus()
+        else if (result.heartRateError) heartRateField.forceActiveFocus()
     }
 
     // Show a field's problem once the user has tried to save, or has typed
@@ -205,6 +211,37 @@ Dialog {
             wrapMode: Text.Wrap
         }
 
+        // Average heart rate (optional)
+        Label {
+            text: qsTr("Heart rate")
+            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+        }
+        RowLayout {
+            spacing: 6
+            TextField {
+                id: heartRateField
+                objectName: "heartRateField"
+                Layout.preferredWidth: Math.round(Theme.fontSize * 11)
+                placeholderText: qsTr("Optional")
+                inputMethodHints: Qt.ImhDigitsOnly
+                selectByMouse: true
+                font.features: { "tnum": 1 }
+                Accessible.name: qsTr("Average heart rate in beats per minute, optional")
+                onAccepted: editor.save()
+            }
+            Label { text: qsTr("bpm average"); color: Theme.mutedText }
+        }
+        Item { width: 1; height: 1 }
+        Label {
+            Layout.fillWidth: true
+            Layout.bottomMargin: 6
+            readonly property string err: editor.problem(heartRateField, editor.check.heartRateError)
+            text: err || " "
+            color: Theme.danger
+            font.pointSize: Theme.fontSize * 0.9
+            wrapMode: Text.Wrap
+        }
+
         // Pace (calculated)
         Label {
             text: qsTr("Pace")
@@ -217,6 +254,16 @@ Dialog {
             font.weight: Font.DemiBold
             font.features: { "tnum": 1 }
             Accessible.name: qsTr("Calculated pace %1").arg(text)
+
+            Label {
+                anchors.left: parent.left
+                anchors.leftMargin: parent.contentWidth + 12
+                anchors.baseline: parent.baseline
+                visible: text.length > 0
+                text: editor.check.beatsPerKmText || ""
+                color: Theme.mutedText
+                font.features: { "tnum": 1 }
+            }
         }
         Item { width: 1; height: 10 }
         Item { width: 1; height: 10 }

@@ -20,12 +20,21 @@ std::optional<qint64> parseDurationSeconds(const QString &text);
 // nearest metre. Does not range-check; see validation.h.
 std::optional<qint64> parseDistanceMetres(const QString &text);
 
+// Parses an average heart rate in whole beats per minute ("148", "148 bpm").
+// Does not range-check; see validation.h.
+std::optional<int> parseHeartRate(const QString &text);
+
 // Parses an ISO date (YYYY-MM-DD).
 std::optional<QDate> parseIsoDate(const QString &text);
 
 // Pace in whole seconds per kilometre, rounded to the nearest second.
 // Returns 0 when it cannot be calculated.
 qint64 paceSecondsPerKm(qint64 distanceMetres, qint64 durationSeconds);
+
+// Heartbeats spent per kilometre: average heart rate × minutes per km, rounded
+// to the nearest beat. Lower means each kilometre cost the heart less.
+// Returns 0 when it cannot be calculated (including no heart rate).
+qint64 beatsPerKm(qint64 distanceMetres, qint64 durationSeconds, int heartRateBpm);
 
 // "28:15", "1:02:30"
 QString formatDuration(qint64 seconds);

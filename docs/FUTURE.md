@@ -36,7 +36,9 @@ running log* before it is built.
 - Automatic cloud syncing (backup files work with any sync tool the user
   already has)
 - Training plans, AI coaching
-- Heart-rate, interval or split tracking
+- Heart-rate zones, streams or analysis beyond the single average and beats
+  per km (PlainRun 0.2 added an optional average heart rate per run)
+- Interval or split tracking
 - Notifications
 - Social features, accounts
 - A mobile app

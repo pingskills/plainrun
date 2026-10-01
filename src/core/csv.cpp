@@ -42,6 +42,7 @@ QString exportRuns(const QList<Run> &runs)
             formatKm(r.distanceMetres, 3),
             formatDuration(r.durationSeconds),
             formatPace(paceSecondsPerKm(r.distanceMetres, r.durationSeconds)),
+            r.heartRateBpm > 0 ? QString::number(r.heartRateBpm) : QString(),
             r.note,
         };
         QStringList escaped;
@@ -172,6 +173,7 @@ ImportResult parseRuns(const QString &text, const QDate &today)
     const int distCol = column(QStringLiteral("distance_km"));
     const int durCol = column(QStringLiteral("duration"));
     const int noteCol = column(QStringLiteral("note"));
+    const int hrCol = column(QStringLiteral("avg_hr_bpm"));
     if (dateCol < 0 || distCol < 0 || durCol < 0) {
         result.problems << tr("Line 1: expected a header with date, distance_km and duration columns.");
         return result;
@@ -201,7 +203,16 @@ ImportResult parseRuns(const QString &text, const QDate &today)
             result.problems << tr("Line %1: invalid duration “%2”.").arg(line).arg(row.at(durCol));
             continue;
         }
-        const QString problem = validateRunValues(*date, *metres, *seconds, today);
+        int heartRate = 0;
+        if (hrCol >= 0 && !row.at(hrCol).trimmed().isEmpty()) {
+            const auto bpm = parseHeartRate(row.at(hrCol));
+            if (!bpm || *bpm == 0) {
+                result.problems << tr("Line %1: invalid heart rate “%2”.").arg(line).arg(row.at(hrCol));
+                continue;
+            }
+            heartRate = *bpm;
+        }
+        const QString problem = validateRunValues(*date, *metres, *seconds, heartRate, today);
         if (!problem.isEmpty()) {
             result.problems << tr("Line %1: %2").arg(line).arg(problem);
             continue;
@@ -212,6 +223,7 @@ ImportResult parseRuns(const QString &text, const QDate &today)
         run.distanceMetres = *metres;
         run.durationSeconds = *seconds;
         run.note = noteCol >= 0 ? normaliseNote(row.at(noteCol)) : QString();
+        run.heartRateBpm = heartRate;
         result.rows.append({run, line});
     }
     return result;

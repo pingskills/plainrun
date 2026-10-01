@@ -19,11 +19,11 @@ Other files that may appear in that directory:
 | `plainrun-pre-restore-YYYY-MM-DD-HHMMSS.db` | Your data as it was just before a restore. Safe to delete once you are happy. |
 | `plainrun.db.restoring` | Temporary file during a restore. Removed automatically. |
 
-## Schema (version 1)
+## Schema (version 2)
 
 ```sql
 PRAGMA application_id = 1349276270;  -- 0x506C526E, ASCII "PlRn"
-PRAGMA user_version = 1;             -- schema version
+PRAGMA user_version = 2;             -- schema version
 
 CREATE TABLE runs (
   id               INTEGER PRIMARY KEY,
@@ -33,10 +33,17 @@ CREATE TABLE runs (
   duration_seconds INTEGER NOT NULL CHECK (duration_seconds > 0),
   note             TEXT    NOT NULL DEFAULT '',
   created_at       TEXT    NOT NULL,   -- ISO 8601 UTC, e.g. 2026-09-30T05:12:33Z
-  updated_at       TEXT    NOT NULL
+  updated_at       TEXT    NOT NULL,
+  avg_heart_rate_bpm INTEGER           -- added in version 2; NULL = not recorded
+                   CHECK (avg_heart_rate_bpm IS NULL OR avg_heart_rate_bpm BETWEEN 30 AND 250)
 );
 CREATE INDEX runs_run_date_idx ON runs (run_date);
 ```
+
+| Version | PlainRun | Change |
+|---|---|---|
+| 1 | 0.1.0 | `runs` table |
+| 2 | 0.2.0 | optional `avg_heart_rate_bpm` (`ALTER TABLE … ADD COLUMN`) |
 
 Design notes:
 
@@ -46,8 +53,9 @@ Design notes:
   up to the nearest metre.
 - **The run date is a calendar date** (`YYYY-MM-DD`) with no time zone. A run
   on the 30th is always on the 30th, wherever the computer is.
-- **Nothing derived is stored.** Pace, weekly, monthly and yearly totals,
-  averages, charts and personal bests are calculated from `runs` each time the
+- **Heart rate is optional** and stored as `NULL` when not recorded, never 0.
+- **Nothing derived is stored.** Pace, beats per km, weekly, monthly and yearly
+  totals, averages, charts and personal bests are calculated from `runs` each time the
   data changes. There are few rows, so this is instantaneous, and derived
   values can never disagree with the data.
 

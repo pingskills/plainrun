@@ -10,9 +10,15 @@ ApplicationWindow {
     id: window
 
     property var selectedRunId: -1
-    // Tiling window managers ignore minimumWidth; below this width the side
-    // panel is hidden so the history and Add Run always fit.
+    // Tiling window managers ignore minimumWidth; below this width the trends
+    // panel becomes a separate view (Runs | Trends) so the history and Add Run
+    // always fit.
     readonly property bool compact: width < Theme.fontSize * 62
+    // Short windows get a one-line summary so the list keeps most of the height.
+    readonly property bool shortWindow: height < Theme.fontSize * 48
+    // Compact layout only: show Trends in place of the run list.
+    property bool showTrends: false
+    readonly property bool trendsShown: compact && showTrends
 
     width: 1080
     height: 720
@@ -74,6 +80,14 @@ ApplicationWindow {
     function showError(title, message, details) {
         messageDialog.show(title, message, details)
     }
+    function showRuns() {
+        showTrends = false
+        history.focusList()
+    }
+    function showTrendsView() {
+        showTrends = true
+        trendsPanel.forceActiveFocus()
+    }
     function afterSave(id) {
         // Make sure the saved run is visible in the history.
         if (App.runs.indexOfId(id) < 0) {
@@ -82,7 +96,7 @@ ApplicationWindow {
         }
         selectedRunId = id
         history.syncCurrent()
-        history.focusList()
+        showRuns()
     }
     function documentsFolder() {
         return StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
@@ -158,7 +172,7 @@ ApplicationWindow {
                 checkable: true
                 checked: App.period === 0
                 ActionGroup.group: periodGroup
-                onTriggered: App.period = 0
+                onTriggered: { App.period = 0; window.showRuns() }
             }
             Action {
                 text: qsTr("This &Month")
@@ -166,7 +180,7 @@ ApplicationWindow {
                 checkable: true
                 checked: App.period === 1
                 ActionGroup.group: periodGroup
-                onTriggered: App.period = 1
+                onTriggered: { App.period = 1; window.showRuns() }
             }
             Action {
                 text: qsTr("This &Year")
@@ -174,7 +188,7 @@ ApplicationWindow {
                 checkable: true
                 checked: App.period === 2
                 ActionGroup.group: periodGroup
-                onTriggered: App.period = 2
+                onTriggered: { App.period = 2; window.showRuns() }
             }
             Action {
                 text: qsTr("&All Runs")
@@ -182,14 +196,25 @@ ApplicationWindow {
                 checkable: true
                 checked: App.period === 3
                 ActionGroup.group: periodGroup
-                onTriggered: App.period = 3
+                onTriggered: { App.period = 3; window.showRuns() }
+            }
+            MenuSeparator {}
+            // Narrow windows show the runs or the trends; wide ones show both.
+            Action {
+                text: window.trendsShown ? qsTr("Show &Runs") : qsTr("Show &Trends")
+                shortcut: "Ctrl+T"
+                enabled: App.ready && window.compact
+                onTriggered: window.trendsShown ? window.showRuns() : window.showTrendsView()
             }
             MenuSeparator {}
             Action {
                 text: qsTr("&Search Notes")
                 shortcut: StandardKey.Find
                 enabled: App.ready
-                onTriggered: history.focusSearch()
+                onTriggered: {
+                    window.showTrends = false
+                    history.focusSearch()
+                }
             }
         }
         Menu {
@@ -210,6 +235,7 @@ ApplicationWindow {
 
         SummaryBar {
             Layout.fillWidth: true
+            condensed: window.shortWindow
         }
         Rectangle {
             Layout.fillWidth: true
@@ -223,6 +249,10 @@ ApplicationWindow {
 
             HistoryView {
                 id: history
+                visible: !window.trendsShown
+                compact: window.compact
+                shortWindow: window.shortWindow
+                onTrendsRequested: window.showTrendsView()
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 selectedRunId: window.selectedRunId
@@ -230,7 +260,6 @@ ApplicationWindow {
                 onEditRequested: id => window.editRun(id)
                 onDeleteRequested: id => window.confirmDelete(id)
                 onAddRequested: window.addRun()
-                showSelectedNote: window.compact
             }
             Rectangle {
                 Layout.fillHeight: true
@@ -239,12 +268,15 @@ ApplicationWindow {
                 visible: !window.compact
             }
             SidePanel {
-                visible: !window.compact
+                id: trendsPanel
+                objectName: "trendsPanel"
+                visible: !window.compact || window.trendsShown
+                compact: window.compact
                 Layout.fillHeight: true
-                Layout.preferredWidth: Math.round(Math.min(Theme.fontSize * 42, Math.max(Theme.fontSize * 25, window.width * 0.34)))
-                selectedRunId: window.selectedRunId
-                onEditRequested: id => window.editRun(id)
-                onDeleteRequested: id => window.confirmDelete(id)
+                Layout.fillWidth: window.compact
+                Layout.preferredWidth: window.compact ? -1 : Math.round(Math.min(Theme.fontSize * 42, Math.max(Theme.fontSize * 25, window.width * 0.34)))
+                onRunsRequested: window.showRuns()
+                onAddRequested: window.addRun()
             }
         }
     }

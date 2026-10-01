@@ -6,6 +6,28 @@ and PlainRun uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Optional average heart rate per run, entered in the run editor (30–250 bpm).
+  The selected run shows it with its **beats per km** (heart rate × minutes per km).
+- A beats-per-km trend: the monthly median over the last 12 months, for months
+  with at least three runs with a heart rate. It stays hidden until a heart
+  rate has been recorded.
+- CSV export and import carry heart rate in an optional `avg_hr_bpm` column.
+  Files without it still import.
+- In narrow windows, a Runs | Trends switch (View → Show Trends, Ctrl+T) keeps
+  the charts and personal bests reachable instead of hiding them.
+
+### Changed
+- The side panel now shows only trends: charts and personal bests. The selected
+  run's note, heart rate and Edit/Delete buttons sit in a strip under the list
+  at every window width.
+- In short windows the summary bar shrinks to one line, and the period stats line
+  is hidden, so the run list keeps the space.
+- In narrow windows, note search collapses to a button; Ctrl+F still opens it.
+- Database schema version 2. Existing databases and backups are upgraded
+  automatically when opened or restored. PlainRun 0.1 refuses to open an
+  upgraded database rather than damage it.
+
 ## [0.1.1] - 2026-09-30
 
 ### Changed

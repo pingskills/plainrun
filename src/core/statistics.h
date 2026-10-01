@@ -33,6 +33,20 @@ QList<Bucket> weeklyBuckets(const QList<Run> &runs, const QDate &today, int coun
 // The `count` most recent calendar months, oldest first.
 QList<Bucket> monthlyBuckets(const QList<Run> &runs, const QDate &today, int count);
 
+// Beats per km for the `count` most recent calendar months, oldest first: the
+// median over the month's runs that have a heart rate. A month needs at least
+// MinHeartRateRunsPerMonth such runs, so one race or a bad sensor reading
+// can't make a month on its own; otherwise beatsPerKm is 0.
+inline constexpr int MinHeartRateRunsPerMonth = 3;
+
+struct HeartRateMonth {
+    DateRange range;
+    int runs = 0;          // runs in the month with a heart rate
+    qint64 beatsPerKm = 0; // median, or 0 when runs < MinHeartRateRunsPerMonth
+};
+
+QList<HeartRateMonth> monthlyBeatsPerKm(const QList<Run> &runs, const QDate &today, int count);
+
 struct Overview {
     std::optional<Run> lastRun;
     Totals thisWeek;

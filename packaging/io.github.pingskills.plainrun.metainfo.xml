@@ -14,8 +14,8 @@
       It is small, fast and entirely local: no accounts, no cloud, no tracking.
     </p>
     <ul>
-      <li>Record date, distance, time and an optional note; pace is calculated</li>
-      <li>Weekly, monthly and yearly totals, with simple distance charts</li>
+      <li>Record date, distance, time, and optionally average heart rate and a note; pace is calculated</li>
+      <li>Weekly, monthly and yearly totals, with simple distance and beats-per-km charts</li>
       <li>Personal bests for 1 km, 5 km, 10 km, half marathon and marathon</li>
       <li>Backup and restore, CSV export and import</li>
       <li>Keyboard friendly; follows the Omarchy theme when available</li>

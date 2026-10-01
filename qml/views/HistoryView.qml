@@ -9,22 +9,27 @@ Pane {
     id: history
 
     property var selectedRunId: -1
-    // In the compact layout (no side panel) the selected run's note is shown below the list.
-    property bool showSelectedNote: false
-    readonly property string selectedNote: {
-        App.totalRunCount // dependency
-        return showSelectedNote && selectedRunId > 0 ? (App.runDetails(selectedRunId).note || "") : ""
+    property bool compact: false
+    property bool shortWindow: false
+    // The selected run's note, heart rate and actions sit in a strip below the list.
+    readonly property var selectedRun: {
+        App.totalRunCount; App.overview // dependencies: any save or delete
+        return selectedRunId > 0 ? App.runDetails(selectedRunId) : { found: false }
     }
+    readonly property string selectedNote: selectedRun.note || ""
     signal selected(var runId)
     signal editRequested(var runId)
     signal deleteRequested(var runId)
     signal addRequested()
+    signal trendsRequested()
 
     readonly property var stats: App.periodStats
     readonly property int numberColumnWidth: Math.round(Math.max(Theme.fontSize * 6.5, Math.min(Theme.fontSize * 8.5, width / 7)))
 
     function focusList() { list.forceActiveFocus() }
-    function focusSearch() { search.forceActiveFocus(); search.selectAll() }
+    // In the compact layout the search field collapses to a button until used.
+    property bool searchOpen: false
+    function focusSearch() { searchOpen = true; search.forceActiveFocus(); search.selectAll() }
 
     // Keep the list's current row in step with the selected run.
     function syncCurrent() {
@@ -54,13 +59,56 @@ Pane {
             Layout.topMargin: 8
             spacing: 12
 
+            TabSwitch {
+                objectName: "runsViewSwitch"
+                visible: history.compact
+                name: qsTr("View")
+                current: 0
+                tabs: [{ text: qsTr("Runs"), tip: qsTr("Runs (Ctrl+T)") },
+                       { text: qsTr("Trends"), tip: qsTr("Trends (Ctrl+T)") }]
+                onChosen: i => { if (i === 1) history.trendsRequested() }
+            }
+            Rectangle {
+                visible: history.compact
+                width: 1
+                Layout.preferredHeight: Math.round(Theme.fontSize * 1.8)
+                color: Theme.border
+            }
+
             PeriodSelector {
                 current: App.period
                 onChosen: period => App.period = period
             }
 
+            AbstractButton {
+                id: searchButton
+                objectName: "searchButton"
+                visible: history.compact && !history.searchOpen && App.search.length === 0
+                implicitWidth: Math.round(Theme.fontSize * 2.6)
+                implicitHeight: implicitWidth
+                onClicked: history.focusSearch()
+                Accessible.name: qsTr("Search notes")
+                ToolTip.visible: hovered
+                ToolTip.delay: 700
+                ToolTip.text: qsTr("Search notes (Ctrl+F)")
+                background: Rectangle { color: searchButton.hovered ? Theme.surface : "transparent" }
+                contentItem: Item {
+                    Rectangle {
+                        x: parent.width * 0.28; y: parent.height * 0.26
+                        width: parent.width * 0.36; height: width; radius: width / 2
+                        color: "transparent"; border.width: 1.6; border.color: Theme.mutedText
+                    }
+                    Rectangle {
+                        x: parent.width * 0.58; y: parent.height * 0.6
+                        width: parent.width * 0.2; height: 1.8; rotation: 45
+                        color: Theme.mutedText
+                    }
+                }
+            }
+
             TextField {
                 id: search
+                visible: !searchButton.visible
                 objectName: "searchField"
                 Layout.fillWidth: true
                 Layout.preferredWidth: Math.round(Theme.fontSize * 18)
@@ -76,6 +124,7 @@ Pane {
                     list.forceActiveFocus()
                 }
                 Keys.onDownPressed: list.forceActiveFocus()
+                onActiveFocusChanged: if (!activeFocus && text.length === 0) history.searchOpen = false
                 ToolTip.visible: hovered && !activeFocus
                 ToolTip.delay: 700
                 ToolTip.text: qsTr("Search notes (Ctrl+F)")
@@ -99,7 +148,7 @@ Pane {
             Layout.rightMargin: 16
             Layout.topMargin: 12
             Layout.bottomMargin: 6
-            visible: history.stats.runs > 0
+            visible: history.stats.runs > 0 && !history.shortWindow
             color: Theme.mutedText
             elide: Text.ElideRight
             font.features: { "tnum": 1 }
@@ -120,7 +169,7 @@ Pane {
             Layout.fillWidth: true
             Layout.leftMargin: 16
             Layout.rightMargin: 16
-            Layout.topMargin: history.stats.runs > 0 ? 0 : 12
+            Layout.topMargin: history.stats.runs > 0 && !history.shortWindow ? 0 : 12
             Layout.bottomMargin: 4
             spacing: 12
             visible: list.count > 0
@@ -220,20 +269,52 @@ Pane {
             Layout.fillWidth: true
             height: 1
             color: Theme.border
-            visible: history.selectedNote.length > 0
+            visible: history.selectedRun.found
         }
-        Label {
+        RowLayout {
             Layout.fillWidth: true
-            Layout.margins: 10
+            Layout.margins: 8
             Layout.leftMargin: 16
             Layout.rightMargin: 16
-            visible: history.selectedNote.length > 0
-            text: history.selectedNote
-            color: Theme.mutedText
-            wrapMode: Text.Wrap
-            maximumLineCount: 3
-            elide: Text.ElideRight
-            Accessible.name: qsTr("Note: %1").arg(text)
+            visible: history.selectedRun.found
+            spacing: 12
+            Label {
+                Layout.fillWidth: true
+                text: history.selectedNote.length > 0 ? history.selectedNote : qsTr("No note")
+                color: Theme.mutedText
+                font.italic: history.selectedNote.length === 0
+                wrapMode: Text.Wrap
+                maximumLineCount: 2
+                elide: Text.ElideRight
+                Accessible.name: history.selectedNote.length > 0 ? qsTr("Note: %1").arg(history.selectedNote)
+                                                                 : qsTr("No note")
+            }
+            Label {
+                objectName: "selectedHeartRate"
+                visible: text.length > 0
+                text: history.selectedRun.heartRateText
+                      ? history.selectedRun.heartRateText + " · " + history.selectedRun.beatsPerKmText : ""
+                color: Theme.mutedText
+                font.features: { "tnum": 1 }
+                ToolTip.visible: hrHover.hovered
+                ToolTip.delay: 500
+                ToolTip.text: qsTr("Average heart rate · heartbeats per kilometre")
+                HoverHandler { id: hrHover }
+            }
+            Button {
+                text: qsTr("Edit")
+                onClicked: history.editRequested(history.selectedRunId)
+                ToolTip.visible: hovered
+                ToolTip.delay: 700
+                ToolTip.text: qsTr("Edit this run (Ctrl+E)")
+            }
+            Button {
+                text: qsTr("Delete")
+                onClicked: history.deleteRequested(history.selectedRunId)
+                ToolTip.visible: hovered
+                ToolTip.delay: 700
+                ToolTip.text: qsTr("Delete this run (Delete)")
+            }
         }
     }
 }

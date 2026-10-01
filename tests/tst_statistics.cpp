@@ -17,6 +17,14 @@ Run run(const QDate &date, qint64 metres, qint64 seconds, qint64 id = 0)
     return r;
 }
 
+// 5 km at 5:00/km, so beats per km is exactly 5 × bpm.
+Run hrRun(const QDate &date, int bpm)
+{
+    Run r = run(date, 5000, 1500);
+    r.heartRateBpm = bpm;
+    return r;
+}
+
 } // namespace
 
 class TestStatistics : public QObject
@@ -113,6 +121,33 @@ private slots:
         QCOMPARE(months.last().range.last, QDate(2026, 2, 28));
         QCOMPARE(months.first().totals.metres, 5000); // Feb 2025 excluded
         QCOMPARE(months.last().totals.metres, 8000);
+    }
+
+    void monthlyBeatsPerKmIsAMedianOfEnoughRuns()
+    {
+        const QDate today(2026, 9, 30);
+        const QList<Run> runs = {
+            // September: 4 runs, even count -> mean of the middle two (700, 750).
+            hrRun(QDate(2026, 9, 2), 140), hrRun(QDate(2026, 9, 9), 150),
+            hrRun(QDate(2026, 9, 16), 130), hrRun(QDate(2026, 9, 23), 190), // a race doesn't skew it
+            run(QDate(2026, 9, 25), 5000, 1500),                             // no heart rate: ignored
+            // August: 3 runs, odd count -> the middle one.
+            hrRun(QDate(2026, 8, 1), 160), hrRun(QDate(2026, 8, 2), 150), hrRun(QDate(2026, 8, 31), 170),
+            // July: only 2 with a heart rate -> not enough.
+            hrRun(QDate(2026, 7, 1), 150), hrRun(QDate(2026, 7, 2), 150),
+            // Outside the 12 months.
+            hrRun(QDate(2025, 9, 30), 150), hrRun(QDate(2025, 9, 29), 150), hrRun(QDate(2025, 9, 28), 150),
+        };
+        const QList<HeartRateMonth> months = monthlyBeatsPerKm(runs, today, 12);
+        QCOMPARE(months.size(), 12);
+        QCOMPARE(months.first().range.first, QDate(2025, 10, 1));
+        QCOMPARE(months.first().runs, 0);
+        QCOMPARE(months.at(9).runs, 2);       // July
+        QCOMPARE(months.at(9).beatsPerKm, 0);
+        QCOMPARE(months.at(10).runs, 3);      // August
+        QCOMPARE(months.at(10).beatsPerKm, 800);
+        QCOMPARE(months.last().runs, 4);      // September
+        QCOMPARE(months.last().beatsPerKm, 725);
     }
 
     void totalsAndAverages()

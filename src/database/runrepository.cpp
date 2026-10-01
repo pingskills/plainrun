@@ -25,6 +25,7 @@ Run runFromQuery(const QSqlQuery &q)
     r.note = q.value(4).toString();
     r.createdAt = QDateTime::fromString(q.value(5).toString(), Qt::ISODate);
     r.updatedAt = QDateTime::fromString(q.value(6).toString(), Qt::ISODate);
+    r.heartRateBpm = q.value(7).isNull() ? 0 : q.value(7).toInt();
     return r;
 }
 
@@ -34,8 +35,15 @@ QString noteValue(const Run &run)
     return run.note.isNull() ? QStringLiteral("") : run.note;
 }
 
+// Heart rate 0 means "not recorded" and is stored as NULL.
+QVariant heartRateValue(const Run &run)
+{
+    return run.heartRateBpm > 0 ? QVariant(run.heartRateBpm) : QVariant(QMetaType::fromType<int>());
+}
+
 const QString SelectColumns = QStringLiteral(
-    "SELECT id, run_date, distance_metres, duration_seconds, note, created_at, updated_at FROM runs");
+    "SELECT id, run_date, distance_metres, duration_seconds, note, created_at, updated_at, avg_heart_rate_bpm "
+    "FROM runs");
 
 bool report(const QSqlQuery &q, QString *error)
 {
@@ -50,12 +58,13 @@ bool insertOne(QSqlDatabase &db, Run &run, QString *error)
     const QString now = timestampNow();
     QSqlQuery q(db);
     q.prepare(QStringLiteral(
-        "INSERT INTO runs (run_date, distance_metres, duration_seconds, note, created_at, updated_at) "
-        "VALUES (?, ?, ?, ?, ?, ?)"));
+        "INSERT INTO runs (run_date, distance_metres, duration_seconds, note, avg_heart_rate_bpm, "
+        "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"));
     q.addBindValue(run.date.toString(Qt::ISODate));
     q.addBindValue(run.distanceMetres);
     q.addBindValue(run.durationSeconds);
     q.addBindValue(noteValue(run));
+    q.addBindValue(heartRateValue(run));
     q.addBindValue(now);
     q.addBindValue(now);
     if (!q.exec())
@@ -101,12 +110,13 @@ bool updateRun(QSqlDatabase db, Run &run, QString *error)
     const QString now = timestampNow();
     QSqlQuery q(db);
     q.prepare(QStringLiteral(
-        "UPDATE runs SET run_date = ?, distance_metres = ?, duration_seconds = ?, note = ?, updated_at = ? "
-        "WHERE id = ?"));
+        "UPDATE runs SET run_date = ?, distance_metres = ?, duration_seconds = ?, note = ?, "
+        "avg_heart_rate_bpm = ?, updated_at = ? WHERE id = ?"));
     q.addBindValue(run.date.toString(Qt::ISODate));
     q.addBindValue(run.distanceMetres);
     q.addBindValue(run.durationSeconds);
     q.addBindValue(noteValue(run));
+    q.addBindValue(heartRateValue(run));
     q.addBindValue(now);
     q.addBindValue(run.id);
     if (!q.exec())

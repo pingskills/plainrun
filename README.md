@@ -12,13 +12,17 @@ applications that do one thing well.
 
 ## Features
 
-- **Fast entry**: date (defaults to today), distance, time and an optional note.
-  Pace is calculated as you type.
+- **Fast entry**: date (defaults to today), distance, time, and optionally your
+  watch's average heart rate and a note. Pace is calculated as you type.
 - **At a glance**: your last run, plus this week, month and year, with last
   week and last month for comparison.
 - **History**: Week / Month / Year / All views, note search and sortable columns.
   View, edit or delete any run.
-- **Two quiet charts**: weekly distance (12 weeks) and monthly distance (12 months).
+- **Quiet trends**: weekly distance (12 weeks), monthly distance (12 months)
+  and, once you record heart rates, **beats per km**: average heart rate ×
+  minutes per km, as a monthly median. If the same running costs fewer beats
+  over time, you're getting fitter. In a narrow window, trends are one
+  keystroke away (Ctrl+T).
 - **Personal bests** for 1 km, 5 km, 10 km, half marathon and marathon.
 - **Backup and restore**, plus **CSV export and import**.
 - **Keyboard friendly** throughout.
@@ -28,8 +32,10 @@ applications that do one thing well.
 ## Philosophy
 
 PlainRun is not a fitness platform. It has no GPS tracking, training plans,
-social features, badges or coaching. It stores four things per run (date,
-distance, time and note) and derives everything else. When a choice comes up
+social features, badges or coaching. It stores a few things per run (date,
+distance, time, note and an optional average heart rate) and derives
+everything else. Heart rate is a single number typed from your watch, not
+zones or streams. When a choice comes up
 between another feature and a faster, clearer, more reliable workflow, it
 takes the second.
 
@@ -140,23 +146,26 @@ A backup is a standard SQLite database file; the format is documented in
 **File → Export CSV…** writes every run as UTF-8 CSV:
 
 ```csv
-date,distance_km,duration,pace,note
-2026-09-27,10.000,58:00,5:48,Long run
-2026-09-30,5.000,28:15,5:39,"Easy run, around Karkarook"
+date,distance_km,duration,pace,avg_hr_bpm,note
+2026-09-27,10.000,58:00,5:48,,Long run
+2026-09-30,5.000,28:15,5:39,148,"Easy run, around Karkarook"
 ```
 
 - `date`: ISO format (`YYYY-MM-DD`).
 - `distance_km`: three decimals, i.e. exact metres.
 - `duration`: `m:ss` or `h:mm:ss`.
 - `pace`: for reference only, and ignored on import.
+- `avg_hr_bpm`: average heart rate in whole beats per minute (30–250); empty
+  when not recorded.
 - `note`: quoted when it contains commas, quotes or line breaks (RFC 4180).
 
 **File → Import CSV…** reads the same format. Columns are matched by header
-name, so their order doesn't matter and extra columns are ignored; `note` and
-`pace` are optional. Every row is checked first. If any row is invalid,
-nothing is imported and the problem rows are listed with line numbers. Runs
-that already exist with the same date, distance, time and note are skipped,
-so importing the same file twice doesn't duplicate anything. The import runs
+name, so their order doesn't matter and extra columns are ignored; `note`,
+`pace` and `avg_hr_bpm` are optional, so files from PlainRun 0.1 still import.
+Every row is checked first. If any row is invalid, nothing is imported and the
+problem rows are listed with line numbers. Runs that already exist with the
+same date, distance, time and note are skipped (heart rate isn't compared), so
+importing the same file twice doesn't duplicate anything. The import runs
 in a single transaction.
 
 Backup/restore moves PlainRun between computers. CSV is for spreadsheets and
@@ -173,6 +182,7 @@ other tools.
 | Esc | Cancel the editor or dialog; clear search |
 | Ctrl+F | Search notes |
 | Ctrl+1 … Ctrl+4 | This week / month / year / all runs |
+| Ctrl+T | In a narrow window, switch between runs and trends |
 | Ctrl+B | Backup data |
 | Ctrl+Q | Quit |
 | ↑ / ↓ | Move through runs; in the date field, change the day |

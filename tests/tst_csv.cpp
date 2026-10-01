@@ -6,13 +6,14 @@ using namespace plainrun;
 
 namespace {
 
-Run run(const QDate &date, qint64 metres, qint64 seconds, const QString &note)
+Run run(const QDate &date, qint64 metres, qint64 seconds, const QString &note, int heartRateBpm = 0)
 {
     Run r;
     r.date = date;
     r.distanceMetres = metres;
     r.durationSeconds = seconds;
     r.note = note;
+    r.heartRateBpm = heartRateBpm;
     return r;
 }
 
@@ -37,12 +38,12 @@ private slots:
 
     void exportFormat()
     {
-        const QString out = csv::exportRuns({run(QDate(2026, 9, 30), 5000, 28 * 60 + 15, "Easy run, around Karkarook"),
+        const QString out = csv::exportRuns({run(QDate(2026, 9, 30), 5000, 28 * 60 + 15, "Easy run, around Karkarook", 148),
                                              run(QDate(2026, 9, 27), 21098, 3600 + 45 * 60, "")});
         const QStringList lines = out.split('\n');
-        QCOMPARE(lines.at(0), QStringLiteral("date,distance_km,duration,pace,note"));
-        QCOMPARE(lines.at(1), QStringLiteral("2026-09-27,21.098,1:45:00,4:59,")); // oldest first
-        QCOMPARE(lines.at(2), QStringLiteral("2026-09-30,5.000,28:15,5:39,\"Easy run, around Karkarook\""));
+        QCOMPARE(lines.at(0), QStringLiteral("date,distance_km,duration,pace,avg_hr_bpm,note"));
+        QCOMPARE(lines.at(1), QStringLiteral("2026-09-27,21.098,1:45:00,4:59,,")); // oldest first; no heart rate
+        QCOMPARE(lines.at(2), QStringLiteral("2026-09-30,5.000,28:15,5:39,148,\"Easy run, around Karkarook\""));
         QVERIFY(out.endsWith('\n'));
     }
 
@@ -52,7 +53,7 @@ private slots:
             run(QDate(2026, 1, 1), 5000, 1500, QStringLiteral("Quotes \"here\" and, commas")),
             run(QDate(2026, 1, 2), 7200, 2492, QStringLiteral("Line one\nLine two")),
             run(QDate(2026, 1, 3), 10000, 3000, QStringLiteral("Ünïcödé — 東京 🏃‍♀️")),
-            run(QDate(2024, 2, 29), 1000, 240, QString()),
+            run(QDate(2024, 2, 29), 1000, 240, QString(), 171),
         };
         const csv::ImportResult parsed = csv::parseRuns(csv::exportRuns(original), Today);
         QVERIFY2(parsed.problems.isEmpty(), qPrintable(parsed.problems.join("; ")));
@@ -63,6 +64,31 @@ private slots:
         QCOMPARE(parsed.rows.at(3).run.note, QStringLiteral("Ünïcödé — 東京 🏃‍♀️"));
         QCOMPARE(parsed.rows.at(2).run.distanceMetres, 7200);
         QCOMPARE(parsed.rows.at(2).run.durationSeconds, 2492);
+        QCOMPARE(parsed.rows.at(0).run.heartRateBpm, 171);
+        QCOMPARE(parsed.rows.at(1).run.heartRateBpm, 0);
+    }
+
+    void heartRateColumnIsOptionalAndChecked()
+    {
+        // Files from PlainRun 0.1 have no avg_hr_bpm column.
+        const csv::ImportResult old = csv::parseRuns("date,distance_km,duration,pace,note\n2026-09-01,5,25:00,5:00,x\n", Today);
+        QVERIFY(old.problems.isEmpty());
+        QCOMPARE(old.rows.first().run.heartRateBpm, 0);
+
+        const QString text = "date,distance_km,duration,avg_hr_bpm\n"
+                             "2026-09-01,5,25:00,148\n"
+                             "2026-09-02,5,25:00,\n"
+                             "2026-09-03,5,25:00,abc\n"
+                             "2026-09-04,5,25:00,20\n"
+                             "2026-09-05,5,25:00,0\n";
+        const csv::ImportResult parsed = csv::parseRuns(text, Today);
+        QCOMPARE(parsed.rows.size(), 2);
+        QCOMPARE(parsed.rows.at(0).run.heartRateBpm, 148);
+        QCOMPARE(parsed.rows.at(1).run.heartRateBpm, 0);
+        QCOMPARE(parsed.problems.size(), 3);
+        QVERIFY(parsed.problems.at(0).startsWith("Line 4:"));
+        QVERIFY(parsed.problems.at(1).startsWith("Line 5:"));
+        QVERIFY(parsed.problems.at(2).startsWith("Line 6:"));
     }
 
     void parserHandlesCrlfBomAndBlankLines()

@@ -92,6 +92,59 @@ private slots:
         QVERIFY(!error.isEmpty());
     }
 
+    void heartRateRoundTripsAndNoneIsNull()
+    {
+        Database db;
+        QVERIFY(db.open(path("heartrate.db")));
+        QSqlDatabase c = db.connection();
+        Run with = makeRun(QDate(2026, 9, 20), 5000, 1650);
+        with.heartRateBpm = 145;
+        Run without = makeRun(QDate(2026, 9, 21), 5000, 1650);
+        QVERIFY(insertRun(c, with));
+        QVERIFY(insertRun(c, without));
+        QCOMPARE(findRun(c, with.id)->heartRateBpm, 145);
+        QCOMPARE(findRun(c, without.id)->heartRateBpm, 0);
+
+        QSqlQuery q(c);
+        QVERIFY(q.exec(QStringLiteral("SELECT COUNT(*) FROM runs WHERE avg_heart_rate_bpm IS NULL")) && q.next());
+        QCOMPARE(q.value(0).toInt(), 1);
+
+        with.heartRateBpm = 0;
+        QVERIFY(updateRun(c, with));
+        QCOMPARE(findRun(c, with.id)->heartRateBpm, 0);
+
+        Run tooLow = makeRun(QDate(2026, 9, 22), 5000, 1650);
+        tooLow.heartRateBpm = 20;
+        QVERIFY(!insertRun(c, tooLow));
+    }
+
+    void version1DatabaseUpgradesWithRunsIntact()
+    {
+        const QString p = path("v1.db");
+        {
+            // Create the database exactly as PlainRun 0.1 did, with a run in it.
+            Database db;
+            QVERIFY(db.open(p, Database::Mode::ReadWrite, migrations().mid(0, 1)));
+            QSqlDatabase c = db.connection();
+            QCOMPARE(userVersion(c), 1);
+        }
+        rawExec(p, {QStringLiteral("INSERT INTO runs (run_date, distance_metres, duration_seconds, note, "
+                                   "created_at, updated_at) VALUES ('2026-09-01', 5000, 1500, 'from 0.1', "
+                                   "'2026-09-01T06:00:00Z', '2026-09-01T06:00:00Z')")});
+        Database db;
+        QVERIFY2(db.open(p), qPrintable(db.lastError()));
+        QSqlDatabase c = db.connection();
+        QCOMPARE(userVersion(c), 2);
+        const QList<Run> runs = allRuns(c);
+        QCOMPARE(runs.size(), 1);
+        QCOMPARE(runs.first().note, QStringLiteral("from 0.1"));
+        QCOMPARE(runs.first().heartRateBpm, 0);
+        Run edited = runs.first();
+        edited.heartRateBpm = 150;
+        QVERIFY(updateRun(c, edited));
+        QCOMPARE(findRun(c, edited.id)->heartRateBpm, 150);
+    }
+
     void constraintsRejectBadRows()
     {
         Database db;

@@ -86,6 +86,8 @@ qt_add_qml_module(plainrun_ui
         qml/components/RunRow.qml
         qml/components/SectionLabel.qml
         qml/components/SummaryCell.qml
+        qml/components/TabSwitch.qml
+        qml/components/TrendChart.qml
         qml/views/AboutDialog.qml
         qml/views/HistoryView.qml
         qml/views/RunEditor.qml
