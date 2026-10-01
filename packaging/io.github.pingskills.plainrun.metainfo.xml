@@ -44,6 +44,11 @@
     <control>pointing</control>
   </supports>
   <releases>
+    <release version="0.2.0" date="2026-10-01">
+      <description>
+        <p>Record your watch's average heart rate with a run, if you like, and follow beats per km: how many heartbeats each kilometre costs, as a monthly median. In narrow windows, the charts and personal bests are now one keystroke away (Ctrl+T) instead of hidden.</p>
+      </description>
+    </release>
     <release version="0.1.1" date="2026-09-30">
       <description>
         <p>Your data folder and database files are now private to your user account.</p>

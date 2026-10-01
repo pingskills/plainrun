@@ -3,7 +3,7 @@
 # plus a generated .SRCINFO; see docs/AUR.md.
 
 pkgname=plainrun
-pkgver=0.1.1
+pkgver=0.2.0
 pkgrel=1
 pkgdesc='A simple native running log for Linux'
 arch=('x86_64' 'aarch64')
@@ -13,7 +13,7 @@ depends=('glibc' 'hicolor-icon-theme' 'libgcc' 'libstdc++' 'qt6-base' 'qt6-decla
 makedepends=('cmake' 'ninja')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
 # Replace with the real checksum once the v$pkgver tag is published: run `updpkgsums`.
-sha256sums=('6f648be96f83fcb32a33400ac73213f3c35a633c518e9fd58db73f251ac3f48e')
+sha256sums=('SKIP')
 
 build() {
   cmake -B build -S "$pkgname-$pkgver" -G Ninja \

@@ -6,6 +6,8 @@ and PlainRun uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-01
+
 ### Added
 - Optional average heart rate per run, entered in the run editor (30–250 bpm).
   The selected run shows it with its **beats per km** (heart rate × minutes per km).
@@ -54,6 +56,7 @@ First release.
 - Follows the active Omarchy theme when present, including live theme changes.
 - Desktop entry, icon and AppStream metadata; Arch Linux PKGBUILD.
 
-[Unreleased]: https://github.com/pingskills/plainrun/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/pingskills/plainrun/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/pingskills/plainrun/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/pingskills/plainrun/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/pingskills/plainrun/releases/tag/v0.1.0
