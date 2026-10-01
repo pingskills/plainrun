@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.21)
 # The version declared here is the single authoritative application version.
 # It is compiled into the binary (About dialog, --version) via plainrun_config.h.
 project(plainrun
-    VERSION 0.2.0
+    VERSION 0.2.1
     DESCRIPTION "A simple native running log for Linux"
     HOMEPAGE_URL "https://github.com/pingskills/plainrun"
     LANGUAGES CXX)
