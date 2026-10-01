@@ -61,7 +61,8 @@ private slots:
         for (int day = 0; day < 3; ++day)
             QVERIFY(app.saveRun(-1, app.shiftDate(app.todayIso(), -day), "5", "27:00", "", "150").value("ok").toBool());
         window->setProperty("selectedRunId", app.runs()->idAt(0));
-        window->resize(600, 300);
+        // The layout thresholds scale with the font size, so size the window from it.
+        window->resize(qRound(theme.fontSize() * 50), qRound(theme.fontSize() * 30));
         QTest::qWait(50);
         QVERIFY(window->property("compact").toBool());
         QVERIFY(window->property("shortWindow").toBool());

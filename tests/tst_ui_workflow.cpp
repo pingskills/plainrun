@@ -213,11 +213,14 @@ private slots:
     void narrowWindowSwitchesBetweenRunsAndTrends()
     {
         auto *panel = qobject_cast<QQuickItem *>(find("trendsPanel"));
+        // The layout thresholds scale with the font size, so size the window from it.
+        window->resize(qRound(theme->fontSize() * 100), qRound(theme->fontSize() * 70));
+        QVERIFY(waitFor([&] { return !window->property("compact").toBool(); }));
         QVERIFY(panel->isVisible()); // wide: always beside the list
         key(Qt::Key_T, Qt::ControlModifier);
         QVERIFY(!window->property("trendsShown").toBool()); // nothing to switch when wide
 
-        window->resize(600, 500);
+        window->resize(qRound(theme->fontSize() * 50), qRound(theme->fontSize() * 60));
         QVERIFY(waitFor([&] { return window->property("compact").toBool(); }));
         QVERIFY(!panel->isVisible());
         QVERIFY(qobject_cast<QQuickItem *>(find("runsViewSwitch"))->isVisible());
@@ -248,7 +251,7 @@ private slots:
         key(Qt::Key_4, Qt::ControlModifier);
         QVERIFY(waitFor([&] { return !panel->isVisible(); }));
 
-        window->resize(1080, 720);
+        window->resize(qRound(theme->fontSize() * 100), qRound(theme->fontSize() * 70));
         QVERIFY(waitFor([&] { return panel->isVisible() && !window->property("compact").toBool(); }));
     }
 
